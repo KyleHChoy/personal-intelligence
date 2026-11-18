@@ -1,0 +1,30 @@
+#!/bin/sh
+# pi-token agent|root|reasoner|tester: store the client token on standard input as the one pi-mcp uses
+# for that Unix user: agent for Claude Code in the box, root for the bridge from the owner's
+# computer, reasoner for the reasoning loop, tester for the outcome test. Fed straight from `pi-admin clients add`, the
+# token is never shown:
+#   pi-admin clients add NAME --views ... --tools ... | pi-token agent
+set -eu
+umask 077
+cd /
+case ${1:-} in
+  agent | root | reasoner | tester) ;;
+  *) echo 'usage: pi-token agent|root|reasoner|tester, with the token on standard input' >&2; exit 2 ;;
+esac
+token=
+IFS= read -r token || :
+case $token in
+  pit_?*) ;;
+  *) echo 'no token on standard input' >&2; exit 1 ;;
+esac
+file=/data/pimcp/tokens/$1
+# The token file is pimcp's, in a directory pimcp owns, since pi-mcp runs as pimcp and pi reads
+# no token. Write it as pimcp, not as root: a root process must not write through
+# /data/pimcp/tokens, which pimcp controls and could fill with symlinks. As pimcp the write and the
+# rename reach only what pimcp reaches already, so there is nothing to escalate.
+printf '%s\n' "$token" | /usr/bin/env -i PATH=/usr/bin:/bin /usr/bin/setpriv --reuid=pimcp --regid=pimcp --init-groups /bin/sh -ec '
+  umask 077
+  IFS= read -r t
+  printf "%s\n" "$t" > "$1.new"
+  mv -f "$1.new" "$1"
+' pi-token "$file"

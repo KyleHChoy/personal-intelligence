@@ -1,0 +1,41 @@
+#!/usr/local/bin/node --disable-sigusr1
+// held-answer PORT: what answers on the agent API's port while the read hold stands, so a caller
+// gets the refusal it can retry, not the host's "nothing listens here". `pi http` does not run under
+// the hold (pi-read-hold ends it, and its supervisor starts it again only once the hold is lifted),
+// so lib/supervise runs this in its place (http-serve's --while-held) and ends it, and waits for it
+// to end, before `pi http` starts again: the two never hold the port at once.
+//
+// Every request, whatever its method or path, /healthz included, gets the answer `pi http` gives a
+// request under the hold: 503 {"error":"unavailable"}, with the same headers. A request that carries
+// a body is answered before it is read, with `connection: close`, as `pi http` answers a push under
+// the hold, so nothing a caller sends is read. It opens no database, reads no file, no key and no
+// variable, and writes nothing: it has no log. It ends when its supervisor does.
+// Taken this way, the file runs alike as a script and as a module, whatever package it sits in.
+const { createServer } = process.getBuiltinModule("node:http");
+
+const port = Number(process.argv[2]);
+if (!/^\d+$/.test(process.argv[2] ?? "") || port < 1 || port > 65_535) process.exit(2);
+
+const BODY = JSON.stringify({ error: "unavailable" });
+const server = createServer((request, response) => {
+  const length = request.headers["content-length"];
+  const carries = (length !== undefined && length !== "0") || request.headers["transfer-encoding"] !== undefined;
+  response.writeHead(503, {
+    "content-type": "application/json",
+    "cache-control": "no-store",
+    "x-content-type-options": "nosniff",
+    ...(carries ? { connection: "close" } : {}),
+  });
+  response.end(BODY);
+});
+// As `pi http`: a request is read whole within these, or its socket is closed.
+server.headersTimeout = 10_000;
+server.requestTimeout = 30_000;
+server.on("error", () => process.exit(1));
+server.listen(port);
+
+// Orphaned, it would hold the port with no supervisor to end it: it ends once its parent is gone.
+const parent = process.ppid;
+setInterval(() => {
+  if (process.ppid !== parent) process.exit(0);
+}, 1_000);

@@ -1,0 +1,42 @@
+#!/bin/bash
+# pi-restore-test DIR: the newest dump in DIR restored into a database of its own on the Postgres
+# service, `pi_restore_test`, checked by `pia restore check` on the box, and dropped. The live database
+# `pi` is never named by a write here. Prints codes and the box's one line of ids and counts:
+# `schema_behind` when the dump is older than the newest migration, which tested nothing and raises no
+# card. Take a new dump, and test that. Exits 0 only when the check found a whole, current copy
+# (`"code":"ok"`); 3 for `schema_behind`; 2 for any other code, or no line from the check at all; 1 when
+# it stopped before the check.
+
+# The exit status for the check's one line (restore_status LINE), as above.
+restore_status() {
+  case $1 in
+    *'"code":"ok"'*) echo 0 ;;
+    *'"code":"schema_behind"'*) echo 3 ;;
+    *) echo 2 ;;
+  esac
+}
+# Sourced, as its test does, it defines the function and runs nothing.
+[ "${BASH_SOURCE[0]}" = "$0" ] || return 0
+
+set -u
+PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin
+d=${1:-}
+db=pi_restore_test
+
+[ -d "$d" ] || { echo "no_directory"; exit 1; }
+f=$(ls -1 "$d"/pi-*.dump.age 2> /dev/null | sort | tail -1)
+[ -n "$f" ] || { echo "no_dump"; exit 1; }
+pbpaste | age-keygen -y > /dev/null 2>&1 || { echo "no_key_on_clipboard"; exit 1; }
+
+drop() { ssh -T pi-db "dropdb --if-exists --force -U postgres $db" || echo "drop_failed"; }
+# However this ends, the key leaves the clipboard and the copy goes.
+trap 'pbcopy < /dev/null; drop' EXIT
+drop
+# Only the check's role may connect, for as long as the copy stands.
+ssh -T pi-db "createdb -U postgres $db && psql -q -U postgres -d postgres -c 'revoke connect on database $db from public; grant connect on database $db to pi_admin;'" || { echo "create_failed"; exit 1; }
+# pg_restore goes past a statement it cannot run and exits nonzero at the end, so its status settles
+# nothing: the check is what says whether the copy is whole.
+(set -o pipefail; age -d -i <(pbpaste) "$f" | ssh -T pi-db "pg_restore -U postgres -d $db" > /dev/null 2>&1) || echo "restore_warned"
+line=$(ssh -T pi-box 'pia restore check')
+echo "$line"
+exit "$(restore_status "$line")"

@@ -1,0 +1,3 @@
+# The migration runner checksums each migration file's raw bytes (packages/store/src/core/migrate.ts),
+# so a checkout must never change a .sql file's line ends.
+*.sql text eol=lf

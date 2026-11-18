@@ -1,0 +1,22 @@
+# Belief kinds that are kept as standing state, and the store that owns each.
+# Everything else stays as claims and is compiled with citations when read.
+# The kinds owned by `personal` are Personal Intelligence's, not the company's
+# paused Personal store: company code never routes a claim to that store by
+# this file. No company type names one (`loadOntology` refuses it, as the company database
+# does) until a company decision adds them.
+version: 1
+kinds:
+  need: { owner: people, used_by: [matching, triggers, expiry] }
+  capability: { owner: people, used_by: [matching] }
+  role: { owner: people, used_by: [current value, matching] }
+  affiliation: { owner: people, used_by: [matching, intro paths] }
+  relationship: { owner: people, used_by: [intro paths] }
+  commitment: { owner: work, used_by: [decision tracking, next steps] }
+  decision: { owner: work, used_by: [decision tracking] }
+  project_status: { owner: work, used_by: [next steps] }
+  consent: { owner: people, used_by: [outbound gate] }
+  contact_rule: { owner: people, used_by: [outbound gate] }
+  goal: { owner: personal, used_by: [self view, people view, context packs] }
+  preference: { owner: personal, used_by: [self view, people view, context packs] }
+  constraint: { owner: personal, used_by: [self view, people view, context packs] }
+  situation: { owner: personal, used_by: [timing, context packs] }

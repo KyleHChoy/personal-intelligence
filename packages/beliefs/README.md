@@ -1,0 +1,8 @@
+# @intelligence/personal-beliefs
+
+The belief rules, the owner's rulings as they apply to claims, the fact keys, the personal ontology and the tiers: pure code, shared by the extraction's rebuild (`@intelligence/personal-extract`) and the store's computed beliefs (`@intelligence/personal-store`).
+
+- **May import:** `@intelligence/contracts` and `@intelligence/personal-core`.
+- **Runs with:** no credentials. No database, no model, no file, no network and no clock: every time is handed in.
+- **Must never:** call a model, read a stored belief or any stored output, read a clock, widen a label, or log.
+- **Holds:** `build-belief.ts` (`buildBelief`, the one implementation of a belief from one audience's claims for one fact, and `DEFAULT_LIFECYCLE`) and `base-fact-key.ts` (`factKey`, the base fact key `fact-key.ts` extends), both adapted from the team system's knowledge package with the same outputs for the same inputs; `belief-rules.ts`, `belief-rulings.ts`, `fact-groups.ts`, `owner-time.ts`, `grounding.ts`, `fact-key.ts`, `ontology.ts` (every type, and the whole view; which version of a prompt offers which types is the extract package's) and `tier.ts`, which the extract package uses; `beliefsFor` (the rebuild's per-audience body, which the rebuild calls) and `beliefAt`; the shadow comparison (`compareBeliefs`) and the switch's rule (`switchHolds`); and `relations.ts`: the evidence order (`compareEvidence`), code's relations at commit (`codeRelations`), which relations apply at read (`appliedAt`, `R11_HOLD`, `readRelations`), the supersede and prevail bounds (`supersedeHolds`, `supersededIn`, `prevailHolds`) and the relations switch (`decideSwitch`, `wilsonLow`); `beliefsFor` applies the relations the audience sees.

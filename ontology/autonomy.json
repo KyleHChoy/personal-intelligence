@@ -1,0 +1,18 @@
+{
+  "version": 12,
+  "meetingSoonHours": 36,
+  "commitmentDueHours": 48,
+  "replyOwedDays": 3,
+  "replyOwedWithinDays": 14,
+  "replyOwedOn": false,
+  "deadlineSoonOn": true,
+  "goalReviewOn": true,
+  "goalReviewDays": 14,
+  "meetingFollowUpOn": true,
+  "meetingFollowUpHours": 36,
+  "beliefChangedRunsOn": false,
+  "cardAttemptsOn": true,
+  "deferredCardDays": 14,
+  "closeNoTieTiers": ["inner", "close"],
+  "closeNoTiePeople": 30
+}

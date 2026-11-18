@@ -1,0 +1,18 @@
+#!/bin/sh
+# What pi-send starts as the pisend user, from an empty environment: load the send user's one file
+# and become `pi`, so `pi-send send status` is `pi send status` with the send role's URL, the send
+# client and the narrowed copy of the key file, and nothing else. Each value is read and exported by
+# this shell: it is never an argument of a process, which every user could read.
+#
+# The key file is the copy pi-send made for this run, never pi's own, which pisend cannot read.
+# The erasure journal's path follows from it: the copy beside it.
+set -eu
+cd /
+unset PWD OLDPWD
+while IFS= read -r line; do
+  case $line in PI_*=*) export "$line" ;; esac
+done < /run/pisend/send.env
+export PI_KEY_FILE=/run/pisend/keys.json
+# Each log line carries its time and level.
+export PI_LOG_TIME=1
+exec /usr/local/bin/pi "$@"

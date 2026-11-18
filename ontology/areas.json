@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "areas": {
+    "self": { "kinds": ["goal", "preference", "constraint", "situation", "view", "status", "visited"] },
+    "work": { "kinds": ["role", "affiliation", "commitment", "decision", "project_status"] },
+    "needs": { "kinds": ["need", "capability"] },
+    "ties": { "kinds": ["relationship"] },
+    "rules": { "kinds": ["consent", "contact_rule"] },
+    "activity": { "kinds": ["capture_project", "interest"] }
+  }
+}

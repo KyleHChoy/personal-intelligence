@@ -1,0 +1,13 @@
+# What a checkout holds that the image must not: installed packages, history, local tools'
+# state, and any local environment file.
+.git
+**/node_modules
+.claude
+**/dist
+coverage
+**/.env
+**/.env.*
+**/*.log
+**/.DS_Store
+# The owner runs these on their own computer, never on the box.
+packages/google/scripts

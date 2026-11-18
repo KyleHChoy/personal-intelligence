@@ -1,0 +1,29 @@
+#!/bin/sh
+# The agent API over stdio: `pi mcp` as the pimcp user, with mcp.env and the client token of the
+# Unix user that started it. The agent user in the box, the reasoner and the
+# bridge from the owner's computer run this. It takes no argument and nothing from its caller's environment.
+#
+# root (the bridge, or the owner's session) drops to pimcp. Anyone else comes through sudo, which
+# has a rule for the agent user, one for the reasoner user and one for the tester user, and no other; sudo names the
+# caller in SUDO_USER itself. pimcp reads none of pi's files: its key file is the narrowed copy in
+# /data/pimcp (lib/agent-keys).
+#
+# While /data/read-hold exists it answers nothing, for anyone: during an upgrade, until the
+# migration has run, and around a restore. The file is in /data, which is root's, so only the
+# owner's session sets or clears it, with pi-read-hold, which also ends the sessions that were
+# already open.
+set -eu
+cd /
+[ "$#" -eq 0 ] || { echo 'pi-mcp takes no arguments' >&2; exit 2; }
+[ ! -e /data/read-hold ] || { echo '{"event":"agent_api_held","code":"read_hold"}' >&2; exit 1; }
+clean='/usr/bin/env -i PATH=/usr/local/bin:/usr/bin:/bin'
+case $(id -un) in
+  pimcp) caller=${SUDO_USER:-root} ;;
+  root) exec $clean /usr/bin/setpriv --reuid=pimcp --regid=pimcp --init-groups /usr/local/bin/pi-mcp ;;
+  *) exec /usr/bin/sudo -n -u pimcp /usr/local/bin/pi-mcp ;;
+esac
+case $caller in
+  agent | root | reasoner | tester) ;;
+  *) echo 'no client for this user' >&2; exit 1 ;;
+esac
+exec $clean PI_BOX_CALLER="$caller" /usr/local/lib/pi/mcp-run mcp mcp

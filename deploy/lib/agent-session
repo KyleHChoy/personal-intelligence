@@ -1,0 +1,13 @@
+#!/bin/sh
+# What agent-run starts, as the agent user: the command it was given, or a shell, in agent's
+# home on the volume. If the owner stored Claude Code's sign-in in ~/claude.env, its variables
+# are set first. Claude Code is root's to update, with a new image, not its own.
+cd "$HOME" || exit 1
+if [ -f "$HOME/claude.env" ]; then
+  while IFS= read -r line; do
+    case $line in ANTHROPIC_*=* | CLAUDE_*=*) export "$line" ;; esac
+  done < "$HOME/claude.env"
+fi
+export DISABLE_AUTOUPDATER=1
+[ "$#" -gt 0 ] || set -- /bin/bash -l
+exec "$@"

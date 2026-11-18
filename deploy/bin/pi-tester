@@ -1,0 +1,14 @@
+#!/bin/sh
+# The weekly outcome test: as the tester user, with its two models and their key and nothing else. It
+# runs when it is due and exits. The timer runs it, as pi, once a day, only when the service sets
+# PI_OUTCOME_TEST=1. Built as pi-reasoner is.
+set -eu
+cd /
+[ "$#" -eq 0 ] || { echo 'pi-tester takes no arguments' >&2; exit 2; }
+clean='/usr/bin/env -i PATH=/usr/local/bin:/usr/bin:/bin'
+case $(id -un) in
+  tester) exec $clean /usr/local/lib/pi/tester-run ;;
+  pi) exec /usr/bin/sudo -n -u tester /usr/local/bin/pi-tester ;;
+  root) exec $clean /usr/bin/setpriv --reuid=tester --regid=tester --init-groups /usr/local/bin/pi-tester ;;
+  *) echo 'only root and pi run this' >&2; exit 1 ;;
+esac

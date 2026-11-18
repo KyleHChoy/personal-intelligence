@@ -1,0 +1,3 @@
+#!/bin/sh
+# Sync: `pi` as the pi user, with sync.env and nothing else. The timer runs `pi-sync sync`.
+exec /usr/local/lib/pi/as-pi sync "$@"

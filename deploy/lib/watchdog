@@ -1,0 +1,27 @@
+#!/bin/sh
+# watchdog PID MARK SECONDS EVERY: the sync timer's watchdog. The timer (PID) writes the time, in
+# seconds since the epoch, to MARK at the top of each loop. Every EVERY seconds this reads MARK, and
+# once the loop has not come round for SECONDS it writes one fixed line, `watchdog_stalled` with the
+# minutes, and sends the timer USR1, which the timer's trap turns into exit 70. The timer is the
+# container's first process, so the container ends with it, the host's restart policy starts it
+# again, and the host's crash alert reaches the owner. A hold is no stall: under one the loop still
+# comes round every two minutes and starts nothing.
+#
+# A MARK that cannot be read, or holds no number, proves nothing, and is read again at the next
+# check. It ends once the timer is gone. It reads nothing else, opens no database and holds no secret.
+set -u
+PATH=/usr/bin:/bin
+pid=$1
+mark=$2
+limit=$3
+every=$4
+while kill -0 "$pid" 2> /dev/null; do
+  sleep "$every"
+  at=$(cat "$mark" 2> /dev/null) || at=
+  case $at in '' | *[!0-9]*) continue ;; esac
+  late=$(($(date +%s) - at))
+  [ "$late" -ge "$limit" ] || continue
+  printf '{"event":"watchdog_stalled","at":"%s","level":"error","counts":{"minutes":%s}}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$((late / 60))" >&2
+  kill -USR1 "$pid" 2> /dev/null
+  exit 0
+done

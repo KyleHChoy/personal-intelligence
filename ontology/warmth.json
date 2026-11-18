@@ -1,0 +1,22 @@
+{
+  "version": 3,
+  "activeHalfLifeDays": 45,
+  "depthHalfLifeDays": 730,
+  "depthFactor": 0.5,
+  "oneToOneMeetingWeight": 1.5,
+  "meetingWeight": 1,
+  "meetingMaxAttendees": 10,
+  "answeredThreadWeight": 0.5,
+  "directMaxRecipients": 10,
+  "replyWindowDays": 14,
+  "replyMinRuns": 4,
+  "responsivenessWindowDays": 365,
+  "hysteresisDays": 21,
+  "caps": [5, 15, 50, 150],
+  "tierFloors": { "inner": 3, "close": 2 },
+  "chatConversationGapMinutes": 30,
+  "answeredStartsPerDayMax": 1,
+  "dormantDepthRank": 15,
+  "dormantActiveRank": 50,
+  "pathWeights": { "inner": 1, "close": 0.8, "regular": 0.6, "known": 0.4, "outer": 0.2, "one-way": 0.1 }
+}

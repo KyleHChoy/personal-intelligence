@@ -1,0 +1,107 @@
+#!/bin/sh
+# Tailscale for the owner's page: tailscaled in userspace networking, as pitail, never root. The
+# entrypoint starts this as pitail, in the background, with an empty environment, as it starts
+# http-serve as pi. Its state is in /data/pitail (0700) and its local API socket in /run/pitail
+# (0700), so no other user but root reaches the daemon.
+#
+# Beside the daemon, at each start and whenever the node stops running, it joins the tailnet and
+# serves the page:
+#   first, when the daemon has state (/data/pitail/tailscaled.state), it waits up to 60 seconds for
+#                    the node to reach Running by itself, as it does after a deploy, and then runs
+#                    no `up` at all: an `up --reset` during a coordination
+#                    outage failed and took the page down. Its settings are the ones the last
+#                    `up --reset` set, in the state only pitail and root can reach.
+#   tailscale up     otherwise, with the same settings every time; --reset puts back any it was not
+#                    given, so Tailscale SSH is off whatever was set before; --timeout=90s, so an
+#                    `up` that cannot finish fails and is tried again a minute later rather than
+#                    hanging. While it waits, one `up_waiting` line a minute. With no state it waits
+#                    for the owner: the login link Tailscale gives is printed on the container's
+#                    output, the deploy log, as one fixed line; the owner approves it in their tailnet (no
+#                    auth key). A link that lapses with the timeout is replaced by the next try's.
+#   then it marks /run/pitail/joined, and tail-config, as root, sets Serve (Tailscale serves a
+#                    Unix socket only on root's word): HTTPS on the node's ts.net name, proxied to the
+#                    page's socket, reset first so it is that configuration alone, never Funnel. And
+#                    it writes the time it joined to /run/pistate/tail.joined_at, world-readable and
+#                    emptied while the node is not running, which the timer reads: 15 minutes empty
+#                    raises one `dashboard_down` box health card.
+# Its lines on the container's output are fixed:
+# {"event":"tailscale","at":...,"level":...,"code":...}, and the login link alone in its own fixed
+# shape. The daemon runs under the box's supervisor (lib/supervise), with its start and end lines,
+# its backoff, its fast-exit count for the timer, and its own output in /data/pitail/tailscaled.log,
+# rotated by size: that directory is pitail's alone (0700), so the daemon's lines, which name
+# devices and the owner's login, reach no other user and never the host's log. `tailscale status` in
+# a box shell shows its state.
+set -u
+cd /
+PATH=/usr/local/bin:/usr/bin:/bin
+sock=/run/pitail/tailscaled.sock
+state=/data/pitail/tailscaled.state
+joined_at=/run/pistate/tail.joined_at
+now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+# say CODE [LEVEL]: one fixed line on the container's output.
+say() { printf '{"event":"tailscale","at":"%s","level":"%s","code":"%s"}\n' "$(now)" "${2:-info}" "$1" >&2; }
+ts() { /usr/local/bin/tailscale --socket="$sock" "$@"; }
+# marker [TIME]: the joined-at marker, emptied without a time. Written in place, as the entrypoint
+# made it pitail's own.
+marker() { printf '%s' "${1:-}" > "$joined_at" 2> /dev/null || true; }
+
+# join: tailscale up, its output kept in pitail's own directory and read for the login link, which
+# is printed whenever it changes (Tailscale gives a new one when one lapses), and only when it has
+# the exact shape of one; `up_waiting` once a minute while it runs.
+join() {
+  out=/run/pitail/up.out
+  ts up --reset --timeout=90s --hostname=pi-box --ssh=false --accept-dns=false --accept-routes=false > "$out" 2>&1 &
+  pid=$!
+  shown=
+  ticks=0
+  while kill -0 "$pid" 2> /dev/null; do
+    url=$(sed -n 's|^[[:space:]]*\(https://login\.tailscale\.com/a/[0-9A-Za-z]\{6,64\}\)[[:space:]]*$|\1|p' "$out" 2> /dev/null | tail -n 1)
+    if [ -n "$url" ] && [ "$url" != "$shown" ]; then
+      printf '{"event":"tailscale","at":"%s","level":"warn","code":"login_url","url":"%s"}\n' "$(now)" "$url" >&2
+      shown=$url
+    fi
+    ticks=$(( ticks + 1 ))
+    [ $(( ticks % 30 )) -ne 0 ] || say up_waiting
+    sleep 2
+  done
+  wait "$pid"
+  status=$?
+  rm -f "$out"
+  return "$status"
+}
+
+# reconnected: with state, whether the node reaches Running by itself within 60 seconds.
+reconnected() {
+  [ -s "$state" ] || return 1
+  n=0
+  while [ "$n" -lt 30 ]; do
+    ! ts status > /dev/null 2>&1 || return 0
+    sleep 2
+    n=$(( n + 1 ))
+  done
+  return 1
+}
+
+# Joined and serving, then watched: when the node stops running (its key expired, or the daemon
+# was started again), it joins again, which prints a new login link if one is needed. A failure is
+# said and tried again a minute later.
+(
+  while :; do
+    until [ -S "$sock" ]; do sleep 1; done
+    rm -f /run/pitail/joined
+    marker
+    if reconnected; then
+      say reconnected
+    else
+      until join; do say up_failed warn; sleep 60; done
+      say up
+    fi
+    : > /run/pitail/joined
+    marker "$(date +%s)"
+    while ts status > /dev/null 2>&1; do sleep 60; done
+    say not_running warn
+  done
+) &
+
+exec /usr/local/lib/pi/supervise tailscaled /data/pitail/tailscaled.log --state /run/pistate/tailscaled.restarts -- \
+  /usr/local/bin/tailscaled --tun=userspace-networking --statedir=/data/pitail --socket="$sock" --no-logs-no-support

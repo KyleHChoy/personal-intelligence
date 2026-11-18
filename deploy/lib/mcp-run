@@ -1,0 +1,31 @@
+#!/bin/sh
+# mcp-run NAME [pi arguments]: what pi-mcp starts as the pimcp user, and http-serve as the pihttp
+# user, from an empty environment: load /run/pimcp/mcp.env or /run/pihttp/http.env and become
+# `pi`, as lib/run does for pi. Each value is read and exported by this shell: it is never an
+# argument of a process, which every user could read. The key file it names is the endpoint's own
+# narrowed copy, in /data/pimcp or /data/pihttp, never pi's own. Only `pi mcp` reads a client
+# token from a file: `pi http` takes each request's token from the request, and its user reads no
+# token file.
+set -eu
+cd /
+name=$1
+shift
+case $name/$(id -un) in
+  mcp/pimcp) dir=pimcp ;;
+  http/pihttp) dir=pihttp ;;
+  *) echo 'mcp-run: mcp as pimcp or http as pihttp' >&2; exit 1 ;;
+esac
+caller=${PI_BOX_CALLER:-}
+unset PI_BOX_CALLER
+while IFS= read -r line; do
+  case $line in PI_*=*) export "$line" ;; esac
+done < "/run/$dir/$name.env"
+# `pi mcp` also takes its caller's client token, from the file the owner stored for that Unix user
+# (pi-token). With no file it still starts, and answers `unauthorized`.
+if [ "$name" = mcp ] && [ -n "$caller" ] && [ -f "/data/pimcp/tokens/$caller" ]; then
+  IFS= read -r PI_CLIENT_TOKEN < "/data/pimcp/tokens/$caller"
+  export PI_CLIENT_TOKEN
+fi
+# Each log line carries its time and level.
+export PI_LOG_TIME=1
+exec /usr/local/bin/pi "$@"

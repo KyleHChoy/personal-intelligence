@@ -1,0 +1,75 @@
+# The one local Postgres server. It holds every database, each with
+# its own roles. Nothing on it needs to survive a restart: data sits in memory and
+# nothing is synced to disk, so it proves nothing about durability. Restore tests
+# start their own instance.
+#
+# The password below guards a throwaway server bound to this machine only. It is
+# not a secret and no deployment uses it.
+
+# A fixed name, so every checkout of this repository shares the one server.
+name: personal-intelligence
+
+services:
+  postgres:
+    image: postgres:18
+    command:
+      - postgres
+      - -c
+      - fsync=off
+      - -c
+      - synchronous_commit=off
+      - -c
+      - full_page_writes=off
+      - -c
+      - max_connections=500
+      # The compiler is off, as on every connection the store makes for itself: a read's plan holds
+      # hundreds of row-policy subplans, and compiling them took seconds a statement.
+      - -c
+      - jit=off
+      # Nothing replicates from this server, so it keeps little write-ahead log.
+      # Cloning a template database per test run would otherwise fill the volume.
+      - -c
+      - wal_level=minimal
+      - -c
+      - max_wal_senders=0
+      - -c
+      - max_wal_size=256MB
+    environment:
+      POSTGRES_PASSWORD: local-only
+    ports:
+      - "127.0.0.1:${INTELLIGENCE_PG_PORT:-54329}:5432"
+    tmpfs:
+      - /var/lib/postgresql:size=2g
+    shm_size: 256m
+    configs:
+      - source: init
+        target: /docker-entrypoint-initdb.d/00-init.sql
+    healthcheck:
+      # Over TCP, so it passes only once the real server is up, not during first-run setup.
+      test: ["CMD", "pg_isready", "-h", "127.0.0.1", "-U", "postgres"]
+      interval: 1s
+      timeout: 3s
+      retries: 60
+
+# Inline, so the repository is never mounted into the container.
+configs:
+  init:
+    content: |
+      -- The bootstrap role. It
+      -- creates databases and roles and owns each database it creates, and it is
+      -- not a superuser, so it cannot hand out bypassrls. pi_owner, which it
+      -- creates, owns every schema.
+      CREATE ROLE migrator LOGIN CREATEDB CREATEROLE PASSWORD 'local-only';
+      -- Only migrator connects to the two databases the server came with, so a
+      -- runtime role has no database but its own. migrator does not own them and
+      -- could not revoke this itself. Each comment is the marker a test reads to
+      -- know this script ran.
+      REVOKE CONNECT ON DATABASE postgres FROM PUBLIC;
+      GRANT CONNECT ON DATABASE postgres TO migrator;
+      COMMENT ON DATABASE postgres IS 'intelligence: connect revoked from public';
+      REVOKE CONNECT ON DATABASE template1 FROM PUBLIC;
+      GRANT CONNECT ON DATABASE template1 TO migrator;
+      COMMENT ON DATABASE template1 IS 'intelligence: connect revoked from public';
+      -- From here on nobody can connect as a superuser, so no test can pass by
+      -- skipping row-level security. Restart the container to start over.
+      ALTER ROLE postgres NOLOGIN;

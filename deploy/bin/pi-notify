@@ -1,0 +1,11 @@
+#!/bin/sh
+# pi-notify [pi arguments]: `pi` as the pinotify user, with notify.env and nothing else,
+# built as pi-extract is: the environment is emptied before the user changes, then
+# lib/notify-run loads the file. `pi-notify notify` is the work-notice sender, which its supervisor,
+# lib/notify-serve, keeps running; every other command refuses to start with the notify URL set.
+# For the owner's own session, which is root: the file is root's, mode 0700, and no sudo rule
+# names it.
+set -eu
+cd /
+[ "$(id -u)" -eq 0 ] || { echo 'only root runs this' >&2; exit 1; }
+exec /usr/bin/env -i PATH=/usr/local/bin:/usr/bin:/bin /usr/bin/setpriv --reuid=pinotify --regid=pinotify --init-groups /usr/local/lib/pi/notify-run "$@"

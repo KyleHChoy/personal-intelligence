@@ -1,0 +1,6 @@
+{
+  "$comment": "agentLoops lists every package that runs an agent loop, which may reach no database or decryption code. tests/structure/import-fence.test.ts enforces this file.",
+  "agentLoops": [
+    "@intelligence/personal-reasoner"
+  ]
+}

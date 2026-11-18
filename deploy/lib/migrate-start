@@ -1,0 +1,155 @@
+#!/bin/sh
+# The container's own migration, when the owner has turned it on. The entrypoint runs this as root,
+# from an empty environment, once the files of /run are written and before anything that reads or
+# writes the database starts. It never stops the start: it always exits 0.
+#
+# It migrates only where /data/pi-root/migrate.env exists, which only `pi-migrate --enable-auto`
+# makes. With no file it asks step 1's question all the same, and on `pending` takes step 2's holds
+# and waits for the owner's `pi-migrate`: it makes /data/migrate-wait, root's and empty, says
+# `waiting`, raises the wait's box health card (`pi-admin health hold migrate_wait`) and ends, so
+# the box comes up answering no agent and syncing nothing against a schema older than its code.
+# The owner's `pi-migrate`, once it has succeeded, takes this step's own holds off, removes the
+# two files and closes the card, with no restart; one that fails leaves all of it. A start while
+# it waits finds its holds its own still and waits again.
+#
+# With the file:
+#   1. `pi db pending`, as pi with admin.env, says whether a migration file waits. It is asked up to
+#      six times, ten seconds apart, since the database may not answer in a start's first seconds.
+#      `none`: no hold, and what a start that waited or failed left, with nothing waiting now, is
+#      cleared: this step's own holds come off, their cards and the wait's are closed, and the two
+#      files are removed. When it could not say, or said anything else: no hold and
+#      no migration either, one line with the code `pending_unread`, and the box starts as it would
+#      without this step. A database that does not answer is no reason to hold the box, and nothing
+#      here would try again: the next start asks again.
+#   2. On `pending` the read hold and the sync hold go on, each only where it is not on already.
+#      Which of the two this step took is written in /data/pi-root/migrate-holds, root's alone, one
+#      name a line, once the hold file is made. A hold is this step's own while that file names it
+#      and the hold file has not been written or touched since: a hold that was on before the step,
+#      and one the owner set again over a hold a failed start left, is the owner's.
+#   3. `pi-migrate --auto`: the files, then the role check. Its last line is its code.
+#   4. On `migrated`, this step's own holds come off, one left by a start that failed among them,
+#      with the card of each such older hold closed, and the file that named them is removed. A
+#      hold the owner set stays.
+#   5. On anything else both holds stay, so nothing syncs or answers against a schema the code does
+#      not match, and one box health card is raised at once for the read hold, as the timer raises
+#      one for a hold an hour old (`pi-admin health hold`). Starting the box again tries again.
+#
+# The schema mark, /run/pistate/schema, which `pi http`'s /healthz reads: `current` after `none` or
+# `migrated`, `behind` while a migration waits or after one that failed, and left `unknown` when
+# step 1 could not say.
+#
+# Its lines on standard error are fixed, one JSON line each: the event `box_migrate`, its time, its
+# level and a code: `none`, `started`, `migrated`, at level warn `pending_unread`, or at level
+# error the code `pi-migrate --auto` ended with, `waiting` at level warn with no credential file,
+# and `health_unrecorded` at level warn when a card could not be raised or closed. What `pi-migrate` and `pi` wrote, ids and codes, is kept in
+# /data/pi-root/migrate.log, root's alone, from the last run only.
+set -u
+umask 077
+PATH=/usr/local/bin:/usr/bin:/bin
+cd / || exit 0
+
+say() { printf '{"event":"box_migrate","at":"%s","level":"%s","code":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${2:-info}" "$1" >&2; }
+limit() {
+  secs=$1
+  shift
+  /usr/bin/timeout -k 30 "$secs" "$@"
+}
+health() { limit 120 /usr/local/lib/pi/as-pi admin health hold "$@" > /dev/null 2>&1; }
+mark() { printf '%s\n' "$1" > /run/pistate/schema 2> /dev/null || :; }
+
+pending=
+for try in 1 2 3 4 5 6; do
+  pending=$(limit 120 /usr/local/lib/pi/as-pi admin db pending 2> /dev/null) && break
+  pending=
+  [ "$try" -eq 6 ] || sleep 10
+done
+case $pending in
+  none | pending) ;;
+  *)
+    say pending_unread warn
+    exit 0
+    ;;
+esac
+
+marker=/data/pi-root/migrate-holds
+# mine HOLD: whether the marker names the hold and the hold file is no newer than the marker.
+mine() {
+  grep -qx "$1" "$marker" 2> /dev/null || return 1
+  [ -z "$(find "/data/$1" -newer "$marker" 2> /dev/null)" ]
+}
+waiting=/data/migrate-wait
+if [ "$pending" = none ]; then
+  # What a start that waited or failed left, when the migration has run since.
+  if [ -e "$marker" ] || [ -e "$waiting" ]; then
+    for hold in read-hold sync-hold; do
+      mine "$hold" || continue
+      rm -f "/data/$hold"
+      health "$(echo "$hold" | tr '-' '_')" --off || say health_unrecorded warn
+    done
+    rm -f "$marker"
+    if [ -e "$waiting" ]; then
+      rm -f "$waiting"
+      health migrate_wait --off || say health_unrecorded warn
+    fi
+  fi
+  mark current
+  say none
+  exit 0
+fi
+mark behind
+# The marker's directory, which `pi-migrate --enable-auto` makes too.
+mkdir -p -m 700 /data/pi-root
+# own: this step's holds, taken now or left by a start that failed; older: the second kind, whose
+# cards are closed when they come off.
+own=
+older=
+for hold in read-hold sync-hold; do
+  if [ ! -e "/data/$hold" ]; then
+    : > "/data/$hold"
+    own="$own $hold"
+  elif mine "$hold"; then
+    own="$own $hold"
+    older="$older $hold"
+  fi
+done
+# Written after the hold files, so none of them is newer than it. A start killed between the two
+# leaves a hold this step no longer knows as its own, which then waits for the owner.
+: > "$marker"
+for hold in $own; do echo "$hold" >> "$marker"; done
+
+# No credential: the migration is the owner's `pi-migrate`, which ends this wait when it succeeds.
+if [ ! -s /data/pi-root/migrate.env ]; then
+  : > "$waiting"
+  say waiting warn
+  health migrate_wait || say health_unrecorded warn
+  exit 0
+fi
+
+say started
+# No time limit: a file's backfill takes as long as the data needs, as in the owner's run.
+out=$(/usr/local/bin/pi-migrate --auto 2> /data/pi-root/migrate.log)
+status=$?
+code=$(printf '%s\n' "$out" | tail -n 1)
+case $code in '' | *[!a-z_]*) code=migrate_failed ;; esac
+
+if [ "$status" -eq 0 ] && [ "$code" = migrated ]; then
+  for hold in $own; do
+    # Touched while the migration ran: the owner's now.
+    mine "$hold" || continue
+    rm -f "/data/$hold"
+    case " $older " in *" $hold "*) health "$(echo "$hold" | tr '-' '_')" --off || say health_unrecorded warn ;; esac
+  done
+  rm -f "$marker"
+  # A wait an earlier start left, before the credential was made.
+  if [ -e "$waiting" ]; then
+    rm -f "$waiting"
+    health migrate_wait --off || say health_unrecorded warn
+  fi
+  mark current
+  say migrated
+else
+  [ "$code" != migrated ] || code=migrate_failed
+  say "$code" error
+  health read_hold || say health_unrecorded warn
+fi
+exit 0

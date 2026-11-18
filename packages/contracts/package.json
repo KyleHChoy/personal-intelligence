@@ -1,0 +1,19 @@
+{
+  "name": "@intelligence/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./evidence-id": "./src/evidence-id.ts",
+    "./alias-key": "./src/alias-key.ts",
+    "./body-hash": "./src/body-hash.ts",
+    "./personal": "./src/personal/index.ts",
+    "./personal/kinds": "./src/personal/kinds.generated.ts"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  }
+}

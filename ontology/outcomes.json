@@ -1,0 +1,38 @@
+{
+  "version": 2,
+  "graceDays": 90,
+  "horizonDays": 30,
+  "defaults": {
+    "follow_up": { "type": "answered", "horizonDays": 14 },
+    "reply": { "type": "answered", "horizonDays": 14 },
+    "meeting_prep": { "type": "meeting_held", "horizonDays": 30 },
+    "investigate": null,
+    "goal_step": { "type": "goal_claim", "horizonDays": 30 },
+    "life_admin": null,
+    "owner_question": null,
+    "research": null
+  },
+  "gapTriggers": {
+    "reply_owed": { "type": "answered", "horizonDays": 14 },
+    "commitment_due": { "type": "answered", "horizonDays": 14 },
+    "meeting_soon": { "type": "meeting_held", "horizonDays": 14 },
+    "unknown_attendee": { "type": "meeting_held", "horizonDays": 14 },
+    "no_warm_path": { "type": "goal_claim", "horizonDays": 30 },
+    "intro_path": { "type": "goal_claim", "horizonDays": 30 },
+    "unresolved_mention": null,
+    "close_no_role": null,
+    "close_no_tie": null,
+    "explore": null,
+    "deadline_soon": null,
+    "same_person": null,
+    "defect": null,
+    "defect_untriaged": null,
+    "card_question": null,
+    "merge_audit": null,
+    "card_relay": null,
+    "dream_finding": null,
+    "owner_queue": null,
+    "goal_review": { "type": "goal_claim", "horizonDays": 30 },
+    "meeting_followup": null
+  }
+}

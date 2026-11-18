@@ -1,0 +1,12 @@
+#!/bin/sh
+# What pi-tester becomes, as the tester user, from an empty environment, as lib/reasoner-run is: load
+# its one file and take the test if it is due. With no file, as when the service does not set
+# PI_OUTCOME_TEST=1, it does nothing.
+set -eu
+unset PWD OLDPWD
+[ -f /run/tester/tester.env ] || exit 0
+while IFS= read -r line; do
+  case $line in PI_OUTCOME_TEST=* | PI_OUTCOME_TEST_*=* | PI_REASONER_KEY_CAP_USD=* | PI_OPENROUTER_KEY_URL=*) export "$line" ;; esac
+done < /run/tester/tester.env
+export PI_LOG_TIME=1
+exec /usr/local/bin/node --disable-sigusr1 /opt/intelligence/apps/reasoner/src/main.ts measure

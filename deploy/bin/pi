@@ -1,0 +1,12 @@
+#!/bin/sh
+# The launcher. Node runs the TypeScript directly by stripping types; nothing runs pnpm, npx or
+# tsx, which read configuration from the working directory. It sets no time zone: `pi` sets its
+# own to UTC as it starts.
+#
+# --disable-sigusr1 takes away the inspector thread that would otherwise open a debugger on
+# loopback when the process is sent SIGUSR1. `agent` starts `pi-mcp` through sudo, whose real
+# uid is agent, so agent can signal that sudo process, and sudo relays the signal to this node
+# child, which runs as pimcp. Without this flag agent can make the pimcp process open its
+# inspector and run code as pimcp. No other signal changes this process's behaviour: SIGQUIT only ends it.
+cd / || exit 1
+exec /usr/local/bin/node --disable-sigusr1 /opt/intelligence/apps/pi/src/main.ts "$@"

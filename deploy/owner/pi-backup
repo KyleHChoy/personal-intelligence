@@ -1,0 +1,34 @@
+#!/bin/bash
+# The dump is taken in the Postgres service, streamed over SSH and encrypted here by age before a
+# byte is written; it needs no backup key. A dump older than the deadline in DIR is deleted, and the
+# dump is recorded on the box. Nothing runs this but the owner, or a schedule the owner turned on.
+# Prints codes and file names, never a value.
+set -u
+PATH=/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin
+d=${1:-}
+recipient=$HOME/pi-backups/recipient.txt
+# Dated 24 days ago or earlier: with dumps a week apart, each lives at most 30 days.
+keep_days=23
+
+[ -d "$d" ] || { echo "no_directory"; exit 1; }
+[ -s "$recipient" ] || { echo "no_recipient"; exit 1; }
+f="$d/pi-$(date +%F).dump.age"
+if ! (set -o pipefail; ssh -T pi-db 'pg_dump -Fc -U postgres pi' | age -r "$(cat "$recipient")" -o "$f.part"); then
+  rm -f "$f.part"
+  echo "dump_failed"
+  exit 1
+fi
+mv "$f.part" "$f"
+chmod 600 "$f"
+echo "dumped"
+
+cut=$(date -v-"${keep_days}"d +%F)
+for x in "$d"/pi-*.dump.age; do
+  n=${x##*/pi-}
+  n=${n%.dump.age}
+  if [[ "$n" < "$cut" ]]; then
+    rm "$x" && echo "deleted pi-$n.dump.age"
+  fi
+done
+
+ssh -T pi-box 'pia backup taken'

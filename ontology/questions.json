@@ -1,0 +1,8 @@
+{
+  "version": 3,
+  "batchPairs": 100,
+  "ownerCardPairs": 25,
+  "maxOffers": 3,
+  "ruleAfterAnswers": 5,
+  "rareFullName": false
+}

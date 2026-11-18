@@ -1,0 +1,632 @@
+#!/bin/sh
+# The sync timer. The entrypoint becomes this, so it is the container's first process, and it
+# runs as pi. One sync, then two minutes, for ever. Two syncs never run at once: this loop
+# waits for each, and the store's lock refuses a second one started by hand.
+#
+# Most loops run a fast sync, mail and calendar alone (`pi-sync sync --fast`).
+# A full sync, which adds agent records, contacts, Drive, the Lens inbox, confirmed agent people
+# and the identity sweep, runs when none has started within ten minutes: /data/pi/sync-full-at is
+# touched as each starts, whatever its end, so a full sync that keeps failing still waits its ten
+# minutes. Each sync ends with a sync_timer_done line that carries its kind and its seconds.
+#
+# Sync's lines go to a file on the volume and nowhere else, so the host's own log of the
+# container holds none of them. Each run starts with one line of this script's that carries
+# the time. A run that fails is one fixed line on this process's own output, which the host
+# keeps: its exit status and nothing of the run, so a sync that fails every time is seen without
+# opening the box. Every fixed line this process writes carries `at` and `level`, as pi's own
+# lines do on the box.
+#
+# Nothing hangs the box. Every child runs under a time limit (`timeout`, with a KILL 30 seconds
+# after its TERM): sync 15 minutes, settle 5, tick 5, reasoner 20, extract 30, dream 30, the outcome test 60, each health
+# call of `pi-admin` 2, and the heartbeat's request 30 seconds. A child stopped by its limit is the
+# fixed line `<job>_timed_out` here, and a `timed_out` run of its job in ledger.job_runs (`pi-admin
+# health job`), which raises one box health card. The reasoner, extract, the outcome test and the
+# filing pass record no run of their own, so the timer records theirs, every one, whatever its end:
+# a job with no row cannot be told from a job that stopped. One that a switch or a hold keeps from
+# starting is recorded once a UTC day as `lane_off` (/data/pi/JOB-off-day), under the sync hold too,
+# so a job the owner turned off is never read as one that stopped; and each is recorded `lane_off`
+# once a start, before the first coverage record (seen_at_start). The three logs are rotated by size during the run,
+# every 30 seconds (lib/rotate-logs), not only between runs.
+#
+# Holds. While /data/sync-hold exists the timer starts nothing, and records each daily job `lane_off` once a day: for an
+# upgrade or a restore. It is looked for before each of the processes, not once per loop, so a hold set while a sync
+# runs keeps the rest of that loop from starting. Each of the three holds the box knows, /data/sync-hold,
+# /data/read-hold and /data/wake-off, and its wait for the owner's migration, /data/migrate-wait (lib/migrate-start), is
+# one `hold_on` line here when the timer first sees it and one `hold_off` line, with its minutes, when it is gone; one
+# held more than an hour raises one box health card (`pi-admin health hold`), tried again each loop until it is written.
+#
+# The key file's identity, once a start. The key file opens everything the box holds, and one that
+# was swapped, damaged or put back from an older copy shows only when a read fails. So before the
+# first sync of a start, and at each loop until it has run, `pi-admin health keys` compares the keys
+# held now with the identity the box recorded at its first start (no key, only what tells the same
+# key from another), and raises one `key_changed` box health card when a key differs or is gone.
+# Not while /data/sync-hold stands: an upgrade or a restore is under way. The owner's
+# `pia keys accept-fingerprint` records a change made on purpose.
+#
+# After each sync, whatever its exit status, an extract is started in the background and not waited for, so a run of
+# several hundred model calls never delays a sync. It starts only when all four hold: /run/pi/extract.env exists,
+# /data/extract-on exists (the owner makes it; the image never does), and neither /data/sync-hold nor /data/read-hold
+# does. The read hold stays on after a restore whose first sync failed, and nothing may read a restored database, nor
+# send what it holds to the model, before a full sync has removed what the source deleted. A run still going at the
+# next tick is not a fault: the new one logs `already_running`, prints `busy` and exits 0. Extract's lines go to their
+# own file on the volume, with a time line; a run that exits non-zero is one fixed line on this process's output,
+# written by a subshell that waits on the run, which then records the run (`pi-admin health job extract`) unless it was
+# `busy`: `budget` when it exited 0 and printed `budget` (it stopped at its dollar line), else its exit status's code.
+# While a gate is closed, `lane_off` once a day.
+#
+# Dreaming nightly. Once a day, after a full sync, under extract's four gates,
+# `pi-extract dream` (the night's pass), once `pi-admin health dream-due` says the owner's sweep
+# hour has come: it prints `due` and the owner's day (the owner's zone's once set, UTC's until then,
+# as the daily sweep reads it). It runs in the background, in the subshell that runs the loop's
+# extract, after that extract, so it never holds up a sync nor the extraction of what just arrived,
+# and it is tried at most twice a day of the owner's (/data/pi/dream-tries). It
+# takes the extract lock itself, a chunk at a time, so beside an extract still running it prints
+# `busy`, which is recorded and is not a try, and a later full loop tries again. The day counts as
+# done, in /data/pi/dream-day, only when the pass stopped `ok` or `budget`; every run is recorded with
+# its code, and coverage's `job/dream` row is silent after 36 hours with none of those two.
+# Each pass has its own time limit, the owner's from the trials, in
+# /data/pi/dream-nightly-seconds and /data/pi/dream-weekly-seconds, and its own dollar cap, in
+# /data/pi/dream-nightly-usd and /data/pi/dream-weekly-usd; with either unset, the timer runs no such
+# pass, as if paused. One pass runs at a time, whoever starts it: a second prints `busy`. Once a week (by the UTC ISO week), after the day's nightly pass is done, the
+# weekly deep pass runs the same way, with its own markers, /data/pi/dream-week and
+# /data/pi/dream-week-tries. Each pass is told to stop two minutes before its limit, between chunks.
+#
+# The standing end-to-end check, once a day. Only when the service sets PI_CANARY=1, which puts the
+# check's two lines in admin.env, and the owner has run `pia canary setup`, which makes its tokens'
+# file, and under extract's four gates, after a full sync, in the subshell that runs the loop's
+# extract, so it never holds up a sync: `lib/canary-run` for the UTC day, tried at most twice a day
+# (/data/pi/canary-tries). It records one ledger.job_runs row a source itself; a run that ended
+# anyhow else is one fixed line and a row of its job with no source. `busy` is no try, and a later
+# full loop tries again. The day counts as done in /data/pi/canary-day once the check has run,
+# whatever colour its rows are: a red source is its result, not a reason to try again.
+#
+# Each loop, before its sync, the supervised processes' fast-exit
+# counts (/run/pistate/*.restarts, lib/supervise) and the page's tailnet marker
+# (/run/pistate/tail.joined_at, lib/tail-serve), each a box health card when it says so. A hold's
+# card is closed when the hold is lifted (`pi-admin health hold NAME --off`).
+#
+# Straight after each sync, whatever its exit status and whichever its kind, `pi erase settle`
+# applies the forgets Lens pushed, as pi with admin.env, waited for as the sync is. Its log lines go
+# to sync.log, forgets_settled with the counts among them; the counts it prints are dropped, since
+# every line of sync.log is an event line. It takes the sync lock first, so beside a sync started by
+# hand it exits 1 with sync_running and the next loop settles; after a restore it exits 1 with
+# erasure_replay_needed until `pia erase replay`, so it fails closed. A failure is one fixed line
+# here, settle_timer_failed, with the exit status alone.
+#
+# Then, after the sync and the settle, whatever their ends, the agent API's copy of the journal's mark:
+# `pi keys agent-journal` as pi, handed through pi's sudo rules for pimcp and pihttp to lib/agent-file,
+# which writes it as each. A sync or a settle appends to the journal as pi, and root's lib/agent-keys runs
+# only at a start and after a pia command, so without this a new `pi mcp` would refuse with
+# erasure_replay_needed, and `pi http` answer unavailable, until the owner ran one. The same at the top of
+# every loop, for the owner's page, which hands its own after each write but may have failed to, and
+# before each reasoner run, so the run does not meet a copy a loop behind. Skipped while pi's journal is
+# missing; a failure is one fixed line here, agent_journal_failed, and the copy stays as it was, which
+# fails closed.
+#
+# After each full sync, the capture storage alarm: `pi-admin status --storage` prints ok, warn_70,
+# warn_85 or ceiling, the database's size against PI_CAPTURE_STORAGE_CEILING_BYTES, and when the
+# code differs from the last one this process wrote (ok at each start) it is one fixed line on this
+# process's output, capture_storage with the code, so the host's log shows the store filling without
+# opening the box. Anything else it prints, and a failure, write nothing: `pia status` is where it
+# is read whole. And, at the end of that loop, after the jobs' records below, the coverage record:
+# `pi-admin status --coverage --record`, whose one fixed line per row that entered `silent` is
+# copied to this process's output; the record raises one box health card per such row, one per job
+# whose last three runs failed, and the backup reminder.
+#
+# Then, in the same loop, the work tick (`pi-work work tick`, as pi), waited for as the sync is, so a stop
+# signal ends the loop at once, and one reasoning run (`pi-reasoner`, which becomes the reasoner user), waited
+# for as well, so a run never overlaps the next sync's deletions. Both log to /data/pi/work.log, with a time
+# line before each, and a failure of either is one fixed line here: work_tick_failed or reasoner_failed. The
+# reasoner holds no database credential, so its run is recorded here, when it ends (`pi-admin health job
+# reasoner`). Neither starts while the read hold exists either, for extraction's reason: nothing acts on a
+# restored database before a full sync. The daily filing pass runs in the background too.
+#
+# The watchdog (lib/watchdog). This process writes the time to /data/pi/loop-at at the top of each
+# loop, and the watchdog, its child, ends it with exit 70 once no loop has come round for the
+# minutes in /data/pi/watchdog-minutes (10 to 1440; 90 when unset or out of range). Every child
+# runs under its limit, so a loop that stops coming round is one that is stuck: the container ends,
+# the host's restart policy starts it again, and the host's crash alert reaches the owner. A hold is
+# no stall, since under one the loop still comes round. The minutes are read once a start.
+PATH=/usr/local/bin:/usr/bin:/bin
+umask 077
+cd / || exit 1
+log=/data/pi/sync.log
+extract_log=/data/pi/extract.log
+work_log=/data/pi/work.log
+imported=
+storage=ok
+
+now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+# say EVENT LEVEL [CODE]: one fixed line on this process's output, which the host keeps.
+say() {
+  if [ -n "${3:-}" ]; then
+    printf '{"event":"%s","at":"%s","level":"%s","code":"%s"}\n' "$1" "$(now)" "$2" "$3" >&2
+  else
+    printf '{"event":"%s","at":"%s","level":"%s"}\n' "$1" "$(now)" "$2" >&2
+  fi
+}
+# mark FILE EVENT: the time line before a run, in its log.
+mark() { printf '{"event":"%s","at":"%s","level":"info"}\n' "$2" "$(now)" >> "$1"; }
+# limit SECONDS COMMAND...: COMMAND under its time limit, KILLed 30 seconds after the TERM.
+limit() {
+  secs=$1
+  shift
+  /usr/bin/timeout -k 30 "$secs" "$@"
+}
+# code STATUS: the job's code for an exit status: ok, timed_out (timeout's 124, or 137 after its
+# KILL) or exit_N.
+code() {
+  case $1 in
+    0) echo ok ;;
+    124 | 137) echo timed_out ;;
+    *) echo "exit_$1" ;;
+  esac
+}
+# report JOB CODE STARTED [COUNTS]: the run in ledger.job_runs as pi_admin, which raises a timed-out
+# card and a failure-streak card; its own failure changes nothing here (`health_unrecorded`). A
+# sync's row carries its kind and whether the read hold is set, as the sync's own does; the night's
+# pass's, the counts it printed, from which pi-admin keeps its backlog and each stage's spend.
+report() {
+  report_counts=$4
+  set -- "$1" "$2" --started "$3"
+  if [ "$1" = sync ]; then
+    set -- "$@" --kind "$kind"
+    [ ! -e /data/read-hold ] || set -- "$@" --read-hold
+  fi
+  [ -z "$report_counts" ] || set -- "$@" --counts "$report_counts"
+  limit 120 /usr/local/bin/pi-admin health job "$@" 2>> "$log" > /dev/null || say health_unrecorded warn "$1"
+}
+# said FAILED JOB CODE: the fixed line for a child that did not end ok: JOB_timed_out for one its
+# limit stopped, else FAILED with its code.
+said() {
+  case $3 in
+    ok) ;;
+    timed_out) say "${2}_timed_out" error ;;
+    *) say "$1" error "$3" ;;
+  esac
+}
+# ended FAILED STATUS JOB STARTED: for a waited child of sync, settle or tick, its line, and for one
+# its limit stopped, its timed-out run recorded. Each records its other runs itself, under its own
+# role.
+ended() {
+  c=$(code "$2")
+  said "$1" "$3" "$c"
+  [ "$c" != timed_out ] || report "$3" timed_out "$4"
+}
+# recorded JOB FAILED STATUS STARTED: for the reasoner, extract, the outcome test and the filing
+# pass, which record no run of their own: its line and its run, every run, so the stopped-job check
+# has a row to read for each.
+recorded() {
+  c=$(code "$3")
+  said "$2" "$1" "$c"
+  report "$1" "$c" "$4"
+}
+# stopped JOB FAILED STATUS OUT STARTED: as recorded, for a run that ended 0 and printed its stop code
+# (`budget`, `pi extract` at its dollar line): that code, not `ok`, so the budget_stops check reads it.
+stopped() {
+  if [ "$3" = 0 ] && [ "$4" = budget ]; then
+    report "$1" budget "$5"
+  else
+    recorded "$1" "$2" "$3" "$5"
+  fi
+}
+# off JOB: a job a switch or a hold keeps from starting, recorded once a UTC day as `lane_off`, so
+# the stopped-job check reads a job turned off as off and not as one that stopped.
+off() {
+  day=$(date -u +%Y-%m-%d)
+  [ "$(cat "/data/pi/$1-off-day" 2> /dev/null)" != "$day" ] || return 0
+  report "$1" lane_off "$(date +%s)"
+  echo "$day" > "/data/pi/$1-off-day"
+}
+
+
+# The holds' first sight, in seconds since the epoch, and whether its card was written.
+sync_hold_at=
+read_hold_at=
+wake_off_at=
+migrate_wait_at=
+sync_hold_told=
+read_hold_told=
+wake_off_told=
+migrate_wait_told=
+holds() {
+  t=$(date +%s)
+  for hold in sync_hold read_hold wake_off migrate_wait; do
+    file=/data/$(echo "$hold" | tr '_' '-')
+    eval "at=\$${hold}_at told=\$${hold}_told"
+    if [ -e "$file" ]; then
+      if [ -z "$at" ]; then
+        say hold_on info "$hold"
+        eval "${hold}_at=$t"
+      elif [ -z "$told" ] && [ $(( t - at )) -ge 3600 ]; then
+        if limit 120 /usr/local/bin/pi-admin health hold "$hold" 2>> "$log" > /dev/null; then eval "${hold}_told=yes"; fi
+      fi
+    elif [ -n "$at" ]; then
+      printf '{"event":"hold_off","at":"%s","level":"info","code":"%s","counts":{"minutes":%s}}\n' "$(now)" "$hold" "$(( (t - at) / 60 ))" >&2
+      # Its card, when one was raised, closed with it.
+      [ -z "$told" ] || limit 120 /usr/local/bin/pi-admin health hold "$hold" --off 2>> "$log" > /dev/null || say health_unrecorded warn "$hold"
+      eval "${hold}_at= ${hold}_told="
+    fi
+  done
+}
+# The key file against its recorded identity, once a start: tried each loop until it has run.
+keys_checked=
+keys_check() {
+  [ -z "$keys_checked" ] || return 0
+  if limit 120 /usr/local/bin/pi-admin health keys 2>> "$log" > /dev/null; then keys_checked=yes; else say keys_unchecked warn; fi
+}
+# The five jobs the stopped-job check reads (box-health-detectors.ts, DAILY), seen once a start:
+# one `lane_off` row for each before the first coverage record, tried each loop until all five are
+# written. A box whose timer recorded only failed runs before this one, or that was down for days,
+# has last rows older than the check's window for jobs that are well; extract and the outcome test
+# run in the background, so their first rows would come after that record. `lane_off` is the code
+# every reader already takes as no run and no failure.
+DAILY_JOBS="dream extract reasoner outcome_test improvement_filing"
+start_seen=
+seen_at_start() {
+  [ -z "$start_seen" ] || return 0
+  for job in $DAILY_JOBS; do
+    if ! limit 120 /usr/local/bin/pi-admin health job "$job" lane_off --started "$(date +%s)" 2>> "$log" > /dev/null; then
+      say health_unrecorded warn "$job"
+      return 0
+    fi
+  done
+  start_seen=yes
+}
+# The extract's four gates, which the dream's are too.
+extract_open() { [ -e /run/pi/extract.env ] && [ -e /data/extract-on ] && [ ! -e /data/sync-hold ] && [ ! -e /data/read-hold ]; }
+
+# tries DAY [FILE]: how many times the pass was tried on DAY (FILE, /data/pi/dream-tries unless
+# given, `DAY N`); a try that found the lock held does not count.
+tries() {
+  tried_day=
+  tried=
+  tries_file=${2:-/data/pi/dream-tries}
+  [ ! -f "$tries_file" ] || read -r tried_day tried < "$tries_file"
+  case $tried in '' | *[!0-9]*) tried=0 ;; esac
+  if [ "$tried_day" = "$1" ]; then echo "$tried"; else echo 0; fi
+}
+# dream_seconds PASS: the time limit the owner set for a pass from the trials, between five minutes
+# and twelve hours, or nothing (and a non-zero status): with none, the timer runs no such pass.
+dream_seconds() {
+  secs_set=$(cat "/data/pi/dream-$1-seconds" 2> /dev/null)
+  case $secs_set in '' | *[!0-9]*) return 1 ;; esac
+  [ "$secs_set" -ge 300 ] && [ "$secs_set" -le 43200 ] || return 1
+  echo "$secs_set"
+}
+# dream_usd PASS: the dollar cap the owner set for a scheduled pass from the trials, or nothing (and a
+# non-zero status): the timer never runs a pass uncapped; only one run by hand may be.
+dream_usd() {
+  usd_set=$(cat "/data/pi/dream-$1-usd" 2> /dev/null)
+  case $usd_set in '' | *[!0-9.]* | *.*.* | .* | *.) return 1 ;; esac
+  # Some digit other than zero: no all-zero cap, however written.
+  case $usd_set in *[1-9]*) ;; *) return 1 ;; esac
+  echo "$usd_set"
+}
+# dream_set PASS: both the pass's time limit and its dollar cap are set.
+dream_set() { dream_seconds "$1" > /dev/null && dream_usd "$1" > /dev/null; }
+# dream_merges: after a pass that finished, the identity merges its candidates earned, as pi_admin, the
+# role the sweep runs as, so no merge waits on a sweep run by hand. A running sync refuses it, and the
+# next pass tries again; a failure is one line and stops nothing.
+dream_merges() {
+  [ ! -e /data/sync-hold ] && [ ! -e /data/read-hold ] && [ ! -e /data/dream-hold ] || return 0
+  limit 300 /usr/local/bin/pi-admin identity dream-merges > /dev/null 2>> "$log" || say dream_merges_failed warn "$?"
+}
+# dream PASS KEY: one try of a pass (nightly for the owner's day KEY, weekly for the week KEY),
+# recorded whatever its end, `busy` among them. KEY counts as done only on `ok` or `budget`. It runs
+# after the loop's extract, so it reads the gates again: a pause or a hold set meanwhile starts no
+# pass and counts as no try (the next full loop records it as `lane_off`).
+dream() {
+  if [ "$1" = weekly ]; then done_file=/data/pi/dream-week; tries_file=/data/pi/dream-week-tries; else done_file=/data/pi/dream-day; tries_file=/data/pi/dream-tries; fi
+  [ ! -e /data/dream-hold ] && extract_open || return 0
+  pass_secs=$(dream_seconds "$1") || return 0
+  pass_usd=$(dream_usd "$1") || return 0
+  # Read the marks again: another loop's pass may have finished KEY meanwhile.
+  [ "$(cat "$done_file" 2> /dev/null)" != "$2" ] && [ "$(tries "$2" "$tries_file")" -lt 2 ] || return 0
+  mark "$extract_log" dream_timer_run
+  began=$(date +%s)
+  out=$(limit "$pass_secs" /usr/local/bin/pi-extract dream --pass "$1" --seconds "$((pass_secs - 120))" --usd "$pass_usd" 2>> "$extract_log")
+  status=$?
+  case $out in
+    busy)
+      report dream busy "$began"
+      return 0
+      ;;
+    *'"stopped":"ok"'*) echo "$2" > "$done_file"; report dream ok "$began" "$out"; dream_merges ;;
+    *'"stopped":"budget"'*) echo "$2" > "$done_file"; report dream budget "$began" "$out"; dream_merges ;;
+    *'"stopped":"unavailable"'*) say dream_timer_failed error unavailable; report dream unavailable "$began" "$out" ;;
+    *)
+      c=$(code "$status")
+      said dream_timer_failed dream "$c"
+      report dream "$c" "$began"
+      ;;
+  esac
+  echo "$2 $(( $(tries "$2" "$tries_file") + 1 ))" > "$tries_file"
+}
+
+canary_on() { grep -q '^PI_CANARY_TOKENS=' /run/pi/admin.env 2> /dev/null && [ -s /data/pi/canary-tokens.json ]; }
+canary_tried() {
+  tried_day=
+  tried=
+  [ ! -f /data/pi/canary-tries ] || read -r tried_day tried < /data/pi/canary-tries
+  case $tried in '' | *[!0-9]*) tried=0 ;; esac
+  if [ "$tried_day" = "$1" ]; then echo "$tried"; else echo 0; fi
+}
+# canary DAY: one try of the day's check.
+canary() {
+  mark "$extract_log" canary_timer_run
+  began=$(date +%s)
+  out=$(limit 1800 /usr/local/lib/pi/canary-run "$1" "$began" 2>> "$extract_log")
+  status=$?
+  [ "$out" != busy ] || return 0
+  c=$(code "$status")
+  if [ "$c" = ok ]; then
+    echo "$1" > /data/pi/canary-day
+  else
+    said canary_timer_failed canary "$c"
+    report canary "$c" "$began"
+  fi
+  echo "$1 $(( $(canary_tried "$1") + 1 ))" > /data/pi/canary-tries
+}
+
+# Each supervised process whose --state file (lib/supervise) counts three or
+# more fast exits in a row raises one `restarting` card, once until its count falls again.
+restarts() {
+  for file in /run/pistate/*.restarts; do
+    [ -f "$file" ] || continue
+    name=$(basename "$file" .restarts)
+    case $name in http | wake | notify | web | tailscaled) ;; *) continue ;; esac
+    n=$(cat "$file" 2> /dev/null)
+    case $n in '' | *[!0-9]*) n=0 ;; esac
+    eval "told=\${restart_told_$name:-}"
+    if [ "$n" -lt 3 ]; then
+      eval "restart_told_$name="
+    elif [ -z "$told" ] && limit 120 /usr/local/bin/pi-admin health restarting "$name" 2>> "$log" > /dev/null; then
+      eval "restart_told_$name=yes"
+    fi
+  done
+}
+
+# The page off the owner's tailnet. Only once the service names the page's host
+# (admin.env's PI_WEB_TS_HOST): tail-serve keeps /run/pistate/tail.joined_at holding the time it
+# joined, empty while it is not; 15 minutes not joined raises one `dashboard_down` card, closed
+# when it joins again.
+dash_since=
+dash_told=
+dashboard() {
+  grep -q '^PI_WEB_TS_HOST=.' /run/pi/admin.env 2> /dev/null || return 0
+  if [ -s /run/pistate/tail.joined_at ]; then
+    dash_since=
+    if [ -n "$dash_told" ] && limit 120 /usr/local/bin/pi-admin health dashboard-down --off 2>> "$log" > /dev/null; then dash_told=; fi
+    return 0
+  fi
+  t=$(date +%s)
+  [ -n "$dash_since" ] || dash_since=$t
+  if [ -z "$dash_told" ] && [ $(( t - dash_since )) -ge 900 ] && limit 120 /usr/local/bin/pi-admin health dashboard-down 2>> "$log" > /dev/null; then dash_told=yes; fi
+}
+
+# agent_journal: the agent API's two copies of the journal's mark, `pi mcp`'s as pimcp and `pi http`'s
+# as pihttp, brought level with pi's journal. Each writer runs as its endpoint's user, so its stderr
+# goes nowhere, never to pi's sync.log; a failure of either is the exit status alone, one
+# agent_journal_failed line. Each writer runs for at most 10 seconds, KILLed 2 after its TERM, not the
+# 30 of `limit`: the user can stop its own process, and a stopped child ignores the TERM until it is
+# continued.
+agent_journal() {
+  [ -e /data/pi/keys.json.erasures ] || return 0
+  mark=$(limit 60 /usr/local/lib/pi/as-pi admin keys agent-journal 2>> "$log") || { say agent_journal_failed warn; return 0; }
+  for user in pimcp pihttp; do
+    printf '%s\n' "$mark" | /usr/bin/timeout -k 2 10 /usr/bin/sudo -n -u "$user" /usr/local/lib/pi/agent-file journal 2> /dev/null \
+      || say agent_journal_failed warn
+  done
+}
+
+# The dead-man heartbeat. When the service sets PI_HEARTBEAT_URL (heartbeat.env), one bare request
+# to it at the top of a loop, at most every ten minutes, so a box whose loop has stopped, or that is
+# down, goes quiet and the outside check tells the owner. It sends nothing but the request: the
+# check learns that the box is alive and when. The URL reaches lib/heartbeat on its stdin, never as
+# an argument every user could read; the request runs for at most 30 seconds, and a failure is one
+# heartbeat_failed line with nothing of the reply. Only when the owner also sets
+# PI_HEARTBEAT_ON_CARD=1: when more box health cards wait than at the last beat, that one request goes
+# to the URL's /fail, so the check tells the owner, and it learns that one more thing, that a card
+# came and never which. The next beat is plain again, so a box that then dies still goes quiet.
+beat_at=0
+heartbeat() {
+  url=$(sed -n 's/^PI_HEARTBEAT_URL=//p' /run/pi/heartbeat.env 2> /dev/null)
+  [ -n "$url" ] || return 0
+  t=$(date +%s)
+  [ $(( t - beat_at )) -ge 600 ] || return 0
+  beat_at=$t
+  if [ "$(sed -n 's/^PI_HEARTBEAT_ON_CARD=//p' /run/pi/heartbeat.env 2> /dev/null)" = 1 ]; then
+    cards=$(limit 30 /usr/local/bin/pi-admin health open 2>> "$log")
+    case $cards in
+      '' | *[!0-9]*) ;;
+      *)
+        [ "$cards" -le "$(cat /data/pi/heartbeat-cards 2> /dev/null || echo 0)" ] || url=$url/fail
+        echo "$cards" > /data/pi/heartbeat-cards
+        ;;
+    esac
+  fi
+  printf '%s\n' "$url" | limit 30 /usr/local/lib/pi/heartbeat || say heartbeat_failed warn
+}
+
+# The first process of a container gets no signal it has not asked for. Stop at once when the
+# container is stopped; a sync cut short is safe to run again.
+trap 'exit 0' TERM INT
+
+# The three logs, rotated by size for as long as this process runs.
+/usr/local/lib/pi/rotate-logs "$log" "$extract_log" "$work_log" &
+
+# The watchdog: USR1 from it is a stuck loop, and ends this process with a status the host restarts on.
+loop_mark=/data/pi/loop-at
+stall=$(cat /data/pi/watchdog-minutes 2> /dev/null) || stall=
+case $stall in '' | *[!0-9]* | ?????*) stall=90 ;; esac
+[ "$stall" -ge 10 ] && [ "$stall" -le 1440 ] || stall=90
+date +%s > "$loop_mark"
+trap 'exit 70' USR1
+/usr/local/lib/pi/watchdog $$ "$loop_mark" "$((stall * 60))" 60 &
+
+while :; do
+  date +%s > "$loop_mark"
+  heartbeat
+  holds
+  restarts
+  dashboard
+  agent_journal
+  if [ ! -e /data/sync-hold ]; then
+    keys_check
+    seen_at_start
+    mark "$log" sync_timer_run
+    # The model key's import, when the start's failed: once it succeeds it is not run again until
+    # the next start, so a key the owner rotated with `pia models set-key` is not written over.
+    # Root owns /run/pi, so pi cannot remove the file; it owns the file, so it empties it, and an
+    # empty file is one there is nothing left to import from.
+    if [ -z "$imported" ] && [ -s /run/pi/model-key.env ]; then
+      if limit 120 /usr/local/lib/pi/as-pi model-key models import-key >> "$log" 2>&1; then
+        imported=yes
+        : > /run/pi/model-key.env
+      fi
+    fi
+    if [ -n "$(find /data/pi/sync-full-at -mmin -10 2> /dev/null)" ]; then kind=fast; else kind=full; fi
+    started=$(date +%s)
+    if [ "$kind" = full ]; then
+      : > /data/pi/sync-full-at
+      limit 900 /usr/local/bin/pi-sync sync >> "$log" 2>&1 &
+    else
+      limit 900 /usr/local/bin/pi-sync sync --fast >> "$log" 2>&1 &
+    fi
+    wait $!
+    status=$?
+    printf '{"event":"sync_timer_done","at":"%s","level":"info","kind":"%s","seconds":%s}\n' "$(now)" "$kind" "$(( $(date +%s) - started ))" >> "$log"
+    ended sync_timer_failed "$status" sync "$started"
+    # Lens: the Mac's forgets, after every sync whatever its outcome.
+    if [ ! -e /data/sync-hold ]; then
+      started=$(date +%s)
+      limit 300 /usr/local/bin/pi-admin erase settle 2>> "$log" > /dev/null &
+      wait $!
+      ended settle_timer_failed "$?" erase_settle "$started"
+    fi
+    agent_journal
+    if [ "$kind" = full ] && [ ! -e /data/sync-hold ]; then
+      level=$(limit 120 /usr/local/bin/pi-admin status --storage 2> /dev/null) || level=
+      case "$level" in ok | warn_70 | warn_85 | ceiling) ;; *) level= ;; esac
+      if [ -n "$level" ] && [ "$level" != "$storage" ]; then
+        say capture_storage warn "$level"
+        storage=$level
+      fi
+    fi
+    # The night's pass, once a day of the owner's, at most two tries a day, started in the background
+    # after the loop's extract, in the same subshell, so it never delays a sync nor new arrivals.
+    dream_day=
+    dream_week=
+    due=
+    # A pass that is paused, or that extraction being closed keeps from starting, is recorded once a
+    # day as `lane_off`, so the stopped-job check reads a pause as a pause and not as a pass that stopped.
+    # With the mark the sync hold's record uses (off), so a day that holds both records one row.
+    # A pass with no time limit set from the trials is paused as well.
+    if [ "$kind" = full ] && { [ -e /data/dream-hold ] || ! extract_open || ! dream_set nightly; }; then off dream; fi
+    [ "$kind" != full ] || [ -e /data/dream-hold ] || ! extract_open || ! dream_set nightly || due=$(limit 120 /usr/local/bin/pi-admin health dream-due 2>> "$log")
+    today=${due#due }
+    if [ "$due" != "$today" ] && [ -n "$today" ] && [ "$(cat /data/pi/dream-day 2> /dev/null)" != "$today" ] && [ "$(tries "$today")" -lt 2 ]; then dream_day=$today; fi
+    # The weekly deep pass, once the week's due nightly pass is done or has its day, by the UTC ISO week.
+    week=$(date -u +%G-W%V)
+    owner_day=$today
+    if [ "$due" != "$today" ] && [ -n "$today" ] && dream_set weekly && [ "$(cat /data/pi/dream-week 2> /dev/null)" != "$week" ] \
+      && [ "$(tries "$week" /data/pi/dream-week-tries)" -lt 2 ]; then dream_week=$week; fi
+    canary_day=
+    if [ "$kind" = full ] && extract_open && canary_on; then
+      today=$(date -u +%Y-%m-%d)
+      if [ "$(cat /data/pi/canary-day 2> /dev/null)" != "$today" ] && [ "$(canary_tried "$today")" -lt 2 ]; then canary_day=$today; fi
+    fi
+    if extract_open; then
+      # A run that held the extract lock, whatever its end, touches extract-full-at: the
+      # proposal wake yields to the timer once none has within a tick.
+      # A run that found the lock held prints `busy` and touches nothing, and is not recorded.
+      (
+        [ -z "$canary_day" ] || canary "$canary_day"
+        mark "$extract_log" extract_timer_run
+        began=$(date +%s)
+        out=$(limit 1800 /usr/local/bin/pi-extract extract 2>> "$extract_log")
+        status=$?
+        if [ "$out" != busy ]; then
+          : > /data/pi/extract-full-at
+          stopped extract extract_timer_failed "$status" "$out" "$began"
+        fi
+        # After an extract that found the lock held, the run that holds it, or the next loop, tries
+        # the pass: a try here could only find the lock held too.
+        [ -z "$dream_day" ] || [ "$out" = busy ] || dream nightly "$dream_day"
+        # The weekly pass after the day's nightly one, and only once that is done.
+        [ -z "$dream_week" ] || [ "$out" = busy ] || [ "$(cat /data/pi/dream-day 2> /dev/null)" != "$owner_day" ] || dream weekly "$dream_week"
+      ) &
+    else
+      off extract
+    fi
+    if [ ! -e /data/sync-hold ] && [ ! -e /data/read-hold ]; then
+      mark "$work_log" work_timer_run
+      started=$(date +%s)
+      limit 300 /usr/local/bin/pi-work work tick >> "$work_log" 2>&1 &
+      wait $!
+      ended work_tick_failed "$?" work_tick "$started"
+    fi
+    # The reasoner, waited for as the tick is. It must not overlap the next loop's sync: a sync can
+    # apply a deletion at the source while a run that read that item is still writing.
+    if [ ! -e /data/sync-hold ] && [ ! -e /data/read-hold ]; then
+      agent_journal
+      mark "$work_log" reasoner_timer_run
+      started=$(date +%s)
+      limit 1200 /usr/local/bin/pi-reasoner >> "$work_log" 2>&1 &
+      wait $!
+      recorded reasoner reasoner_failed "$?" "$started"
+    else
+      off reasoner
+    fi
+    # The weekly outcome test, when the service turned it on, and the daily filing pass, each at most
+    # once a day (/data/pi/*-after) and neither under a hold. The database says whether the test is due: one run cut short gets
+    # one more try, and one that scored nothing is no try. A first run takes about 40 minutes, so its
+    # limit is an hour. Both in the background as extract is: sync and the tick never wait on either,
+    # and the day's wait keeps two of one from running at once.
+    if [ ! -e /run/pi/tester-on.env ] || [ -e /data/sync-hold ] || [ -e /data/read-hold ]; then
+      off outcome_test
+    elif [ "$(cat /data/pi/tester-after 2> /dev/null || echo 0)" -le "$(date +%s)" ]; then
+      echo $(($(date +%s) + 86400)) > /data/pi/tester-after
+      (
+        mark "$work_log" outcome_test_timer_run
+        started=$(date +%s)
+        limit 3600 /usr/local/bin/pi-tester >> "$work_log" 2>&1
+        recorded outcome_test outcome_test_failed "$?" "$started"
+      ) &
+    fi
+    if [ -e /data/sync-hold ] || [ -e /data/read-hold ]; then
+      off improvement_filing
+    elif [ "$(cat /data/pi/filing-after 2> /dev/null || echo 0)" -le "$(date +%s)" ]; then
+      echo $(($(date +%s) + 86400)) > /data/pi/filing-after
+      (
+        mark "$work_log" improvement_filing_timer_run
+        started=$(date +%s)
+        limit 600 /usr/local/bin/pi-admin improvements file >> "$work_log" 2>&1
+        recorded improvement_filing improvement_filing_failed "$?" "$started"
+      ) &
+    fi
+    # Coverage, with its box health cards; its silent lines on this process's output. After the
+    # waited jobs' records of this loop, so the stopped-job check reads them; a background job's
+    # record is read at the next full loop.
+    if [ "$kind" = full ] && [ ! -e /data/sync-hold ]; then
+      limit 120 /usr/local/bin/pi-admin status --coverage --record >&2 2>> "$log" || say coverage_unrecorded warn
+    fi
+  else
+    # Under the sync hold nothing starts. Each of the five is still recorded once a UTC day as
+    # `lane_off`, so a hold of days is read as a hold and not as five jobs that stopped.
+    for job in $DAILY_JOBS; do off "$job"; done
+  fi
+  # What `next` and the open items show, by id, for `pia outcomes` to score a week later. At most once
+  # an hour, the time of the last try in /data/pi/backtest-at: most replies go within hours, and a read
+  # a day would have missed them. No model and nothing off the box; a failure is one line and the next
+  # hour tries again.
+  backtest_at=$(cat /data/pi/backtest-at 2> /dev/null || echo 0)
+  if [ ! -e /data/sync-hold ] && [ ! -e /data/read-hold ] && [ "$(($(date +%s) - backtest_at))" -ge 3600 ]; then
+    date +%s > /data/pi/backtest-at
+    limit 300 /usr/local/bin/pi-admin backtest record 2>> "$log" > /dev/null &
+    wait $! || say backtest_record_failed warn
+  fi
+  sleep 120 &
+  wait $!
+done

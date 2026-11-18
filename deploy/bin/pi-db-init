@@ -1,0 +1,25 @@
+#!/bin/sh
+# Once, before the first migration, and again after the Postgres server is replaced: the
+# bootstrap role, with no way to log in, the database it owns, and the server's logging
+# settings, so that no statement and no parameter ever reaches the server's log. It prints the
+# server's version and the settings as the server now has them.
+set -eu
+umask 077
+cd /
+. /usr/local/lib/pi/superuser.sh
+sql <<'SQL'
+select 'create role pi_bootstrap createrole nocreatedb nosuperuser nologin'
+  where not exists (select from pg_roles where rolname = 'pi_bootstrap') \gexec
+select 'create database pi owner pi_bootstrap'
+  where not exists (select from pg_database where datname = 'pi') \gexec
+alter system set log_statement = 'none';
+alter system set log_min_error_statement = 'panic';
+alter system set log_parameter_max_length = 0;
+alter system set log_parameter_max_length_on_error = 0;
+select pg_reload_conf() \gset
+select pg_sleep(1) \gset
+select 'server_version = ' || current_setting('server_version');
+select name || ' = ' || setting from pg_settings
+  where name in ('log_statement', 'log_min_error_statement', 'log_parameter_max_length', 'log_parameter_max_length_on_error')
+  order by name;
+SQL

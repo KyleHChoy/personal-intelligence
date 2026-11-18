@@ -1,0 +1,5 @@
+#!/bin/sh
+# The work tick: `pi` as the pi user, with work.env and nothing else: the work URL and the
+# erasure journal's path, and no key file. The timer runs `pi-work work tick`. No sudo rule
+# names it, so neither agent nor the reasoner can run it.
+exec /usr/local/lib/pi/as-pi work "$@"

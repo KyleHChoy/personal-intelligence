@@ -1,0 +1,35 @@
+# /etc/sudoers.d/pi-box
+#
+# A session for agent, started by root with agent-run, gets a pseudo-terminal of its own, so
+# nothing it writes to its terminal can reach the terminal of the session that started it.
+Defaults use_pty
+
+# The agent user's one rule: the agent API, as pimcp, with no argument. sudo starts it with an
+# environment of its own making (env_reset, with nothing kept and nothing checked through), so
+# nothing agent sets reaches pimcp. No pseudo-terminal here: the command speaks JSON-RPC on a pipe.
+Defaults:agent env_reset, !env_keep, !env_check, !use_pty
+agent ALL = (pimcp) NOPASSWD: /usr/local/bin/pi-mcp ""
+
+# The reasoner's one rule: the agent API, as pimcp, with no argument, as agent's. The reasoner
+# holds no token: pi-mcp reads the one the owner stored for the reasoner user.
+Defaults:reasoner env_reset, !env_keep, !env_check, !use_pty
+reasoner ALL = (pimcp) NOPASSWD: /usr/local/bin/pi-mcp ""
+
+# The outcome test's one rule, as the reasoner's. It holds no token, and until the owner registers its
+# client pi-mcp answers unauthorized.
+Defaults:tester env_reset, !env_keep, !env_check, !use_pty
+tester ALL = (pimcp) NOPASSWD: /usr/local/bin/pi-mcp ""
+
+# pi's rules. The reasoner, as the reasoner user, with no argument: any process that runs as
+# pi can start a run with it; the day's run and dollar ceilings bound that, and next_run hands out
+# only runs the tick queued. And the agent API's two copies of the journal's mark, as pimcp for
+# `pi mcp` and as pihttp for `pi http`, each with the one argument `journal`, used by the timer and
+# by the owner's page after a write: lib/agent-file takes the mark on its standard input and writes
+# nothing else, never a mark lower than the copy's, and pi holds the whole journal and every key
+# already, so it gives pi nothing it lacks. Neither pimcp nor pihttp, which answers the internet, has
+# a rule.
+Defaults:pi env_reset, !env_keep, !env_check, !use_pty
+pi ALL = (reasoner) NOPASSWD: /usr/local/bin/pi-reasoner ""
+pi ALL = (tester) NOPASSWD: /usr/local/bin/pi-tester ""
+pi ALL = (pimcp) NOPASSWD: /usr/local/lib/pi/agent-file journal
+pi ALL = (pihttp) NOPASSWD: /usr/local/lib/pi/agent-file journal

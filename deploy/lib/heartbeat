@@ -1,0 +1,17 @@
+#!/usr/local/bin/node
+// One request to the owner's dead-man check (lib/sync-timer, `heartbeat`). Its URL arrives on stdin,
+// so it is never an argument. Exits 0 when the check answered 2xx and 1 otherwise, after at most ten
+// seconds, and prints nothing: no URL and nothing of the reply reaches a log.
+let url = "";
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (chunk) => {
+  url += chunk;
+});
+process.stdin.on("end", async () => {
+  try {
+    const reply = await fetch(url.trim(), { signal: AbortSignal.timeout(10_000) });
+    process.exit(reply.ok ? 0 : 1);
+  } catch {
+    process.exit(1);
+  }
+});

@@ -1,0 +1,151 @@
+#!/bin/sh
+# supervise NAME LOG [options] -- COMMAND...: the box's one supervisor loop for its long-lived
+# processes, which http-serve, wake-serve, notify-serve and web-serve run.
+# It starts COMMAND, waits for it to end and starts it again, for ever:
+#
+#   - one start line in LOG before each start, {"event":"NAME_start","at":...,"level":"info"},
+#     and one end line with the exit code, {"event":"NAME_end","code":"exit_N",...};
+#   - a backoff: a process that ran a minute or more is started again five seconds later; one that
+#     ended sooner waits twice as long as the last wait, from five seconds up to five minutes, so a
+#     fault that will not mend itself starts a process every five minutes at most;
+#   - LOG rotated by size during the run, not only at a start: every 30 seconds a background loop
+#     copies a LOG of 5 MB or more to LOG.1 and empties LOG. The process writes LOG in append mode
+#     (the shell's >>), so its next line goes to the start of the emptied file;
+#   - while any --hold FILE exists, it starts no COMMAND (only --while-held's, below), and says so
+#     once in LOG, `NAME_held`, with the hold's name as its code. A hold is no fault of the
+#     process: it ends a backoff, a process that ends under one counts as no fast exit, and the
+#     next start, at once when the hold is lifted, begins the backoff again from five seconds;
+#   - --while-held 'PROGRAM ARG...': while a hold stands, this command runs in COMMAND's place, so
+#     what stands on COMMAND's port can answer that it is held (http-serve's lib/held-answer). Its
+#     words are plain words, split on spaces. Once no hold stands it is ended and waited for before
+#     COMMAND starts, so the two never run at once. One that ends while a hold still stands is said,
+#     `NAME_held_answer_end` with its exit code at level warn, and started again five seconds later.
+#     Its stdout and stderr go nowhere: it writes no line of its own.
+#   - --stop N: an exit code that ends the supervisor itself, as `pia web stop` ends the page's.
+#   - --stdout log|null: where COMMAND's stdout goes (log by default); its stderr always goes to
+#     LOG, and its stdin is /dev/null.
+#   - --state FILE: how many times in a row COMMAND ended within a minute of
+#     its start, one number, written after each such end and set back to 0 once a run has lasted a
+#     minute. The timer reads it, and three or more raises one box health card naming NAME
+#     (`restarting`). The entrypoint makes FILE, the writer's own, world-readable, in /run/pistate.
+#
+# Every line it writes is fixed: an event, a time, a level and a code. Nothing of the process's.
+set -u
+cd /
+PATH=/usr/local/bin:/usr/bin:/bin
+name=$1
+log=$2
+shift 2
+holds=
+while_held=
+stop=
+stdout=log
+state=
+while [ "$#" -gt 0 ]; do
+  case $1 in
+    --hold) holds="$holds $2"; shift 2 ;;
+    --while-held) while_held=$2; shift 2 ;;
+    --stop) stop=$2; shift 2 ;;
+    --stdout) stdout=$2; shift 2 ;;
+    --state) state=$2; shift 2 ;;
+    --) shift; break ;;
+    *) echo "supervise: unknown option" >&2; exit 2 ;;
+  esac
+done
+
+now() { date -u +%Y-%m-%dT%H:%M:%SZ; }
+# line EVENT LEVEL [CODE]: one fixed line in LOG.
+line() {
+  if [ -n "${3:-}" ]; then
+    printf '{"event":"%s","at":"%s","level":"%s","code":"%s"}\n' "$1" "$(now)" "$2" "$3" >> "$log"
+  else
+    printf '{"event":"%s","at":"%s","level":"%s"}\n' "$1" "$(now)" "$2" >> "$log"
+  fi
+}
+
+# The rotation by size, in the background for as long as the supervisor runs.
+/usr/local/lib/pi/rotate-logs "$log" &
+
+# count N: the fast exits in a row, in --state's file when there is one.
+count() { [ -z "$state" ] || echo "$1" > "$state" 2> /dev/null || true; }
+
+# held_by: sets hold to the first --hold file that exists, or to nothing; true when there is one.
+held_by() {
+  hold=
+  for file in $holds; do
+    if [ -e "$file" ]; then hold=$file; return 0; fi
+  done
+  return 1
+}
+
+# answer_held: --while-held's command, until no hold stands. A watcher ends it once the holds are
+# lifted, and the supervisor waits for it to end, so its port is free before COMMAND starts. The
+# watcher also ends it, and itself, once the supervisor is gone: `$$` in the subshell is the
+# supervisor's own pid, so a supervisor killed while a hold stands leaves neither behind.
+answer_held() {
+  # shellcheck disable=SC2086 # plain words, split on purpose
+  $while_held < /dev/null > /dev/null 2>&1 &
+  answer=$!
+  ( while held_by && kill -0 $$ 2> /dev/null; do sleep 5; done; kill "$answer" 2> /dev/null ) < /dev/null > /dev/null 2>&1 &
+  watcher=$!
+  wait "$answer"
+  ended=$?
+  kill "$watcher" 2> /dev/null
+  wait "$watcher" 2> /dev/null
+  if held_by; then
+    line "${name}_held_answer_end" warn "exit_$ended"
+    sleep 5
+  fi
+}
+
+wait_s=5
+held=
+fast=0
+count 0
+while :; do
+  if held_by; then
+    if [ "$held" != "$hold" ]; then
+      line "${name}_held" info "$(basename "$hold" | tr '-' '_')"
+      held=$hold
+      wait_s=5
+      fast=0
+      count 0
+    fi
+    if [ -n "$while_held" ]; then answer_held; else sleep 5; fi
+    continue
+  fi
+  held=
+  line "${name}_start" info
+  started=$(date +%s)
+  if [ "$stdout" = null ]; then
+    "$@" < /dev/null > /dev/null 2>> "$log" &
+  else
+    "$@" < /dev/null >> "$log" 2>&1 &
+  fi
+  pid=$!
+  # A run that lasts a minute ends the streak at once, not only when it ends.
+  if [ -n "$state" ] && [ "$fast" -gt 0 ]; then
+    ( sleep 60; ! kill -0 "$pid" 2> /dev/null || count 0 ) < /dev/null > /dev/null 2>&1 &
+  fi
+  wait "$pid"
+  status=$?
+  line "${name}_end" "$([ "$status" -eq 0 ] && echo info || echo warn)" "exit_$status"
+  [ -z "$stop" ] || [ "$status" -ne "$stop" ] || exit 0
+  if held_by; then
+    continue
+  elif [ $(( $(date +%s) - started )) -ge 60 ]; then
+    wait_s=5
+    fast=0
+  else
+    wait_s=$(( wait_s * 2 ))
+    [ "$wait_s" -le 300 ] || wait_s=300
+    fast=$(( fast + 1 ))
+  fi
+  count "$fast"
+  # The wait, in slices, so a hold set during it ends it.
+  left=$wait_s
+  while [ "$left" -gt 0 ] && ! held_by; do
+    sleep 5
+    left=$(( left - 5 ))
+  done
+done

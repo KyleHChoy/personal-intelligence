@@ -1,0 +1,1357 @@
+// Generated from ontology/kinds.json by `node tools/kinds/generate.ts`: never edit by hand.
+export const KIND_REGISTRY_DATA = {
+  "version": 1,
+  "note": "The one kind registry. For each kind of fact about the owner and their people: its fact type and belief kind, the subject kinds it may be about, its fields (the current version's) with its key and the phrase that renders it, and whether it is a notice type, a kind a ruling may give, a typed claim's kind, a kind propose_about_you takes and whether a proposal of it may hold the legacy body, stored before typed proposals (`legacy`); then the type guide: its dashboard `words`, the dashboard's question about one (`ask`: about the owner, about someone else, and `otherwise` where the first does not read; `{field}` its value, `{a|b}` the first present, `[...]` only when every field in it is present), `means` (the definition the extraction prompts show), what belongs, where the rest goes (`goes`, with the classifier's refusal code when a pinned rule sends it there) and three good and three bad synthetic examples. The TypeScript tables are held to it by structure tests; `packages/contracts/src/personal/kinds.generated.ts` is generated from it by `node tools/kinds/generate.ts`. Synthetic examples only: never real data.",
+  "kinds": {
+    "situation": {
+      "type": "situation",
+      "beliefKind": "situation",
+      "subjectKinds": [
+        "owner",
+        "person",
+        "organization"
+      ],
+      "fields": [
+        {
+          "name": "state",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "domain",
+          "kind": "enum",
+          "required": true
+        },
+        {
+          "name": "until",
+          "kind": "date",
+          "required": false
+        },
+        {
+          "name": "momentary",
+          "kind": "boolean",
+          "required": false
+        }
+      ],
+      "phrase": "state",
+      "key": [
+        "domain",
+        "state"
+      ],
+      "notice": false,
+      "rulable": true,
+      "typed": true,
+      "aboutYou": true,
+      "legacy": true,
+      "words": "Situation",
+      "ask": {
+        "you": "Are you currently {state}?",
+        "them": "Is {who} currently {state}?",
+        "otherwise": "Is this {whose} situation now: {state}?"
+      },
+      "means": "one of the subject's current circumstances, such as being on leave or moving, until a date when one is given; state is that circumstance. momentary is true when it holds for a day or two, such as a trip today or an errand tomorrow",
+      "belongs": [
+        "a circumstance of his life lasting more than two weeks: on parental leave, living abroad, recovering from surgery",
+        "a life stage: between jobs, in his final year of school"
+      ],
+      "notBelongs": [
+        {
+          "what": "a task, deadline, appointment, bill, ticket or code with a date",
+          "goes": "plan",
+          "refusal": "dated_task"
+        },
+        {
+          "what": "where an organization's process about him stands: an application, an order, an account",
+          "goes": "status"
+        },
+        {
+          "what": "his opinion about the world",
+          "goes": "view"
+        },
+        {
+          "what": "how his agents should work",
+          "goes": "client_preference",
+          "refusal": "agent_instruction"
+        },
+        {
+          "what": "a fact about another person",
+          "goes": "relationship",
+          "refusal": "not_about_owner"
+        }
+      ],
+      "good": [
+        "on parental leave until March",
+        "living in Lisbon for the year",
+        "between jobs"
+      ],
+      "bad": [
+        {
+          "text": "dentist appointment on Friday",
+          "goes": "plan",
+          "refusal": "dated_task"
+        },
+        {
+          "text": "visa application in review",
+          "goes": "status"
+        },
+        {
+          "text": "remote teams ship faster",
+          "goes": "view"
+        }
+      ]
+    },
+    "preference": {
+      "type": "preference",
+      "beliefKind": "preference",
+      "subjectKinds": [
+        "owner",
+        "person"
+      ],
+      "fields": [
+        {
+          "name": "object",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "domain",
+          "kind": "enum",
+          "required": true
+        },
+        {
+          "name": "polarity",
+          "kind": "enum",
+          "required": true
+        }
+      ],
+      "phrase": "object",
+      "key": [
+        "domain",
+        "object",
+        "polarity"
+      ],
+      "notice": false,
+      "rulable": false,
+      "typed": true,
+      "aboutYou": true,
+      "legacy": true,
+      "words": "Preference",
+      "ask": {
+        "you": "Do you {polarity} {object}?",
+        "them": "Does {who} {polarity} {object}?"
+      },
+      "means": "one thing the subject says they prefer or avoid in general, beyond this one exchange; object is that thing, written without a negation word, and polarity says whether they prefer it or avoid it",
+      "belongs": [
+        "a lasting like or dislike about his life: aisle seats, morning meetings, small dinners"
+      ],
+      "notBelongs": [
+        {
+          "what": "an instruction to his agents: which tool to try, how to check an order",
+          "goes": "client_preference",
+          "refusal": "agent_instruction"
+        },
+        {
+          "what": "a choice made once in this exchange",
+          "goes": "plan"
+        },
+        {
+          "what": "his opinion about the world",
+          "goes": "view"
+        }
+      ],
+      "good": [
+        "aisle seats on long flights",
+        "meetings before noon",
+        "small dinners over large parties"
+      ],
+      "bad": [
+        {
+          "text": "use the autofill on the travel site",
+          "goes": "client_preference",
+          "refusal": "agent_instruction"
+        },
+        {
+          "text": "check the order page before writing support",
+          "goes": "client_preference",
+          "refusal": "agent_instruction"
+        },
+        {
+          "text": "index funds beat stock picking",
+          "goes": "view"
+        }
+      ]
+    },
+    "constraint": {
+      "type": "constraint",
+      "beliefKind": "constraint",
+      "subjectKinds": [
+        "owner",
+        "person",
+        "organization"
+      ],
+      "fields": [
+        {
+          "name": "rule",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "domain",
+          "kind": "enum",
+          "required": true
+        },
+        {
+          "name": "until",
+          "kind": "date",
+          "required": false
+        }
+      ],
+      "phrase": "rule",
+      "key": [
+        "domain",
+        "rule"
+      ],
+      "notice": false,
+      "rulable": true,
+      "typed": true,
+      "aboutYou": true,
+      "legacy": true,
+      "words": "Constraint",
+      "ask": {
+        "you": "Is this a rule you keep: {rule}?",
+        "them": "Is this a rule {who} keeps: {rule}?"
+      },
+      "means": "one lasting limit on what the subject can do, until a date when one is given; rule is that limit",
+      "belongs": [
+        "a lasting limit on what he can do: no travel during exams, no calls on Sundays, a diet"
+      ],
+      "notBelongs": [
+        {
+          "what": "an instruction to his agents",
+          "goes": "client_preference",
+          "refusal": "agent_instruction"
+        },
+        {
+          "what": "a one-off conflict on a date",
+          "goes": "plan"
+        }
+      ],
+      "good": [
+        "no travel during exam weeks",
+        "no calls on Sundays",
+        "cannot eat gluten"
+      ],
+      "bad": [
+        {
+          "text": "always draft replies before sending",
+          "goes": "client_preference",
+          "refusal": "agent_instruction"
+        },
+        {
+          "text": "busy Thursday at 3pm",
+          "goes": "plan"
+        },
+        {
+          "text": "bill due next Monday",
+          "goes": "plan"
+        }
+      ]
+    },
+    "goal": {
+      "type": "goal",
+      "beliefKind": "goal",
+      "subjectKinds": [
+        "owner",
+        "person",
+        "organization"
+      ],
+      "fields": [
+        {
+          "name": "objective",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "domain",
+          "kind": "enum",
+          "required": true
+        },
+        {
+          "name": "by",
+          "kind": "date",
+          "required": false
+        }
+      ],
+      "phrase": "objective",
+      "key": [
+        "domain",
+        "objective"
+      ],
+      "notice": false,
+      "rulable": true,
+      "typed": true,
+      "aboutYou": false,
+      "legacy": true,
+      "words": "Goal",
+      "ask": {
+        "you": "Is this one of your goals: {objective}?",
+        "them": "Is this one of {whose} goals: {objective}?"
+      },
+      "means": "one objective the subject is pursuing over weeks or longer, by a date when one is given; objective is what they want to achieve. A wish to meet, talk, connect or hear feedback in this exchange, a pleasantry, and a request to a company about an account, a subscription or its settings are not goals",
+      "belongs": [
+        "an objective he pursues over weeks or longer"
+      ],
+      "notBelongs": [
+        {
+          "what": "a wish to meet or talk in this exchange",
+          "goes": "plan"
+        },
+        {
+          "what": "something he promised someone",
+          "goes": "commitment"
+        }
+      ],
+      "good": [
+        "raise a seed round",
+        "run a marathon",
+        "learn conversational Spanish"
+      ],
+      "bad": [
+        {
+          "text": "grab coffee next week",
+          "goes": "plan"
+        },
+        {
+          "text": "send the deck to the investor",
+          "goes": "commitment"
+        },
+        {
+          "text": "cancel the streaming subscription",
+          "goes": "plan"
+        }
+      ]
+    },
+    "need": {
+      "type": "need",
+      "beliefKind": "need",
+      "subjectKinds": [
+        "owner",
+        "person",
+        "organization"
+      ],
+      "fields": [
+        {
+          "name": "object",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "domain",
+          "kind": "enum",
+          "required": true
+        },
+        {
+          "name": "by",
+          "kind": "date",
+          "required": false
+        }
+      ],
+      "phrase": "object",
+      "key": [
+        "domain",
+        "object"
+      ],
+      "notice": false,
+      "rulable": true,
+      "typed": true,
+      "aboutYou": true,
+      "legacy": true,
+      "words": "Need",
+      "ask": {
+        "you": "Do you need {object}?",
+        "them": "Does {who} need {object}?"
+      },
+      "means": "one thing the subject lacks or is looking for that lasts beyond this exchange, by a date when one is given; object is that thing. A question asked in passing, a request for directions, logistics or next steps in this exchange, and a request to meet are not needs",
+      "belongs": [
+        "something he lacks or looks for beyond this exchange"
+      ],
+      "notBelongs": [
+        {
+          "what": "logistics or next steps in this exchange",
+          "goes": "plan"
+        },
+        {
+          "what": "an objective he pursues",
+          "goes": "goal"
+        }
+      ],
+      "good": [
+        "a designer for the brand refresh",
+        "an apartment near campus",
+        "a tax advisor"
+      ],
+      "bad": [
+        {
+          "text": "directions to the venue",
+          "goes": "plan"
+        },
+        {
+          "text": "the meeting link",
+          "goes": "plan"
+        },
+        {
+          "text": "become a better writer",
+          "goes": "goal"
+        }
+      ]
+    },
+    "capability": {
+      "type": "capability",
+      "beliefKind": "capability",
+      "subjectKinds": [
+        "owner",
+        "person",
+        "organization"
+      ],
+      "fields": [
+        {
+          "name": "object",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "domain",
+          "kind": "enum",
+          "required": true
+        }
+      ],
+      "phrase": "object",
+      "key": [
+        "domain",
+        "object"
+      ],
+      "notice": false,
+      "rulable": true,
+      "typed": true,
+      "aboutYou": true,
+      "legacy": true,
+      "words": "Skill",
+      "ask": {
+        "you": "Is this one of your skills: {object}?",
+        "them": "Is this one of {whose} skills: {object}?"
+      },
+      "means": "one skill, expertise, asset or resource the subject has and could bring to others; object is that skill or asset. An offer of courtesy, such as to share more, to send materials, to give a demonstration, to meet or to fit someone's schedule, is not a capability",
+      "belongs": [
+        "a skill, expertise or resource he could bring to others"
+      ],
+      "notBelongs": [
+        {
+          "what": "an offer of courtesy in this exchange",
+          "goes": "commitment"
+        },
+        {
+          "what": "where he works or studies",
+          "goes": "affiliation"
+        }
+      ],
+      "good": [
+        "financial modelling",
+        "fluent Mandarin",
+        "a network of seed investors"
+      ],
+      "bad": [
+        {
+          "text": "send more materials",
+          "goes": "commitment"
+        },
+        {
+          "text": "studies at a university",
+          "goes": "affiliation"
+        },
+        {
+          "text": "free on Tuesday",
+          "goes": "plan"
+        }
+      ]
+    },
+    "view": {
+      "type": "view",
+      "beliefKind": "view",
+      "subjectKinds": [
+        "owner",
+        "person"
+      ],
+      "fields": [
+        {
+          "name": "view",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "domain",
+          "kind": "enum",
+          "required": true
+        },
+        {
+          "name": "topic",
+          "kind": "text",
+          "required": false
+        }
+      ],
+      "phrase": "view",
+      "key": [
+        "domain",
+        "topic"
+      ],
+      "notice": false,
+      "rulable": true,
+      "typed": true,
+      "aboutYou": true,
+      "legacy": false,
+      "words": "View",
+      "ask": {
+        "you": "Is this your view[ on {topic}]: {view}?",
+        "them": "Is this {whose} view[ on {topic}]: {view}?"
+      },
+      "means": "one opinion or thesis the subject holds about the world, in their own words; topic is what it is about and view the opinion itself. A plan, a task or a circumstance is not a view",
+      "belongs": [
+        "his opinion or thesis about the world, quoted from him"
+      ],
+      "notBelongs": [
+        {
+          "what": "a circumstance of his life",
+          "goes": "situation"
+        },
+        {
+          "what": "a lasting like or dislike",
+          "goes": "preference"
+        }
+      ],
+      "good": [
+        "remote teams ship faster",
+        "credentials matter less than work samples",
+        "small schools build stronger cohorts"
+      ],
+      "bad": [
+        {
+          "text": "on leave until March",
+          "goes": "situation"
+        },
+        {
+          "text": "aisle seats",
+          "goes": "preference"
+        },
+        {
+          "text": "finish the essay by Friday",
+          "goes": "plan"
+        }
+      ]
+    },
+    "status": {
+      "type": "status",
+      "beliefKind": "status",
+      "subjectKinds": [
+        "owner"
+      ],
+      "fields": [
+        {
+          "name": "organization_name",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "process",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "state",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "domain",
+          "kind": "enum",
+          "required": true
+        },
+        {
+          "name": "since",
+          "kind": "date",
+          "required": false
+        }
+      ],
+      "phrase": "process",
+      "key": [
+        "organization_name",
+        "process"
+      ],
+      "notice": true,
+      "rulable": false,
+      "typed": false,
+      "aboutYou": true,
+      "legacy": false,
+      "words": "Where something stands",
+      "ask": {
+        "you": "Is this where it stands[ with {organization_name}]: your {process} is {state}?",
+        "them": "Is this where it stands[ with {organization_name}]: {whose} {process} is {state}?"
+      },
+      "means": "where an organization's process about the subject stands: an application in review, an order shipped, an account suspended; organization_name is the organization, process what it is handling and state where it stands now",
+      "belongs": [
+        "an organization's process about him and its current state; a later state replaces the earlier"
+      ],
+      "notBelongs": [
+        {
+          "what": "a circumstance of his own life",
+          "goes": "situation"
+        },
+        {
+          "what": "a bill or a payment still due on a date",
+          "goes": "plan"
+        }
+      ],
+      "good": [
+        "Consulate: visa application in review",
+        "Example Bank: card replacement shipped",
+        "Example University: application received"
+      ],
+      "bad": [
+        {
+          "text": "moving to Denver",
+          "goes": "situation"
+        },
+        {
+          "text": "pay the invoice by Friday",
+          "goes": "plan"
+        },
+        {
+          "text": "banks are too slow",
+          "goes": "view"
+        }
+      ]
+    },
+    "visited": {
+      "type": "visited",
+      "beliefKind": "visited",
+      "subjectKinds": [
+        "owner",
+        "person"
+      ],
+      "fields": [
+        {
+          "name": "place",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "domain",
+          "kind": "enum",
+          "required": true
+        },
+        {
+          "name": "when",
+          "kind": "date",
+          "required": false
+        }
+      ],
+      "phrase": "place",
+      "key": [
+        "place"
+      ],
+      "notice": false,
+      "rulable": false,
+      "typed": true,
+      "aboutYou": true,
+      "legacy": false,
+      "words": "Place you have been",
+      "ask": {
+        "you": "Have you been to {place}?",
+        "them": "Has {who} been to {place}?"
+      },
+      "means": "a place the subject has been: a city, a country or a venue; place is that place, and when the day they were there when one is given",
+      "belongs": [
+        "a place he has been, one fact a place, shown together as his travel history"
+      ],
+      "notBelongs": [
+        {
+          "what": "a trip still ahead",
+          "goes": "plan"
+        },
+        {
+          "what": "where he lives now",
+          "goes": "situation"
+        }
+      ],
+      "good": [
+        "Lisbon",
+        "Kyoto",
+        "the Grand Canyon"
+      ],
+      "bad": [
+        {
+          "text": "flying to Kyoto next month",
+          "goes": "plan"
+        },
+        {
+          "text": "lives in Lisbon",
+          "goes": "situation"
+        },
+        {
+          "text": "loves Kyoto",
+          "goes": "preference"
+        }
+      ]
+    },
+    "plan": {
+      "type": "plan",
+      "beliefKind": null,
+      "subjectKinds": [
+        "owner",
+        "person"
+      ],
+      "fields": [
+        {
+          "name": "counterparty",
+          "kind": "entity",
+          "required": false
+        },
+        {
+          "name": "what",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "when",
+          "kind": "date",
+          "required": true
+        }
+      ],
+      "notice": true,
+      "rulable": false,
+      "typed": false,
+      "aboutYou": false,
+      "legacy": false,
+      "words": "Plan",
+      "ask": {
+        "you": "Is this one of your plans: {what}?",
+        "them": "Is this one of {whose} plans: {what}?"
+      },
+      "means": "an arrangement to meet or do something together at a stated date; the subject is who proposed or confirmed it",
+      "belongs": [
+        "something arranged for a stated date: a meeting, an appointment, a deadline, a trip"
+      ],
+      "notBelongs": [
+        {
+          "what": "something he promised to do for someone",
+          "goes": "commitment"
+        },
+        {
+          "what": "a lasting circumstance",
+          "goes": "situation"
+        }
+      ],
+      "good": [
+        "dinner with the team on Friday",
+        "dentist appointment on 12 March",
+        "flight to Kyoto on 2 April"
+      ],
+      "bad": [
+        {
+          "text": "send the slides to the investor",
+          "goes": "commitment"
+        },
+        {
+          "text": "on leave until March",
+          "goes": "situation"
+        },
+        {
+          "text": "prefers morning meetings",
+          "goes": "preference"
+        }
+      ]
+    },
+    "commitment": {
+      "type": "commitment",
+      "beliefKind": "commitment",
+      "subjectKinds": [
+        "owner",
+        "person"
+      ],
+      "fields": [
+        {
+          "name": "counterparty",
+          "kind": "entity",
+          "required": true
+        },
+        {
+          "name": "what",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "due",
+          "kind": "date",
+          "required": false
+        }
+      ],
+      "notice": false,
+      "rulable": false,
+      "typed": true,
+      "aboutYou": false,
+      "legacy": false,
+      "words": "Commitment",
+      "ask": {
+        "you": "Did you take this on: {what}?",
+        "them": "Did {who} take this on: {what}?"
+      },
+      "means": "something the subject says they will do for the counterparty; the subject is who will do it",
+      "belongs": [
+        "something one person said they will do for another"
+      ],
+      "notBelongs": [
+        {
+          "what": "an arrangement at a date",
+          "goes": "plan"
+        },
+        {
+          "what": "an objective of his own",
+          "goes": "goal"
+        }
+      ],
+      "good": [
+        "send the slides to the investor",
+        "introduce the founder to a recruiter",
+        "review the draft contract"
+      ],
+      "bad": [
+        {
+          "text": "lunch on Thursday",
+          "goes": "plan"
+        },
+        {
+          "text": "raise a seed round",
+          "goes": "goal"
+        },
+        {
+          "text": "contract in review at the firm",
+          "goes": "status"
+        }
+      ]
+    },
+    "role": {
+      "type": "role",
+      "beliefKind": "role",
+      "subjectKinds": [
+        "owner",
+        "person"
+      ],
+      "fields": [
+        {
+          "name": "title",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "organization",
+          "kind": "entity",
+          "required": false
+        },
+        {
+          "name": "organization_name",
+          "kind": "text",
+          "required": false
+        }
+      ],
+      "notice": false,
+      "rulable": false,
+      "typed": true,
+      "aboutYou": true,
+      "legacy": false,
+      "words": "Role",
+      "ask": {
+        "you": "Are you {title}[ at {organization|organization_name}]?",
+        "them": "Is {who} {title}[ at {organization|organization_name}]?"
+      },
+      "means": "the subject's job title or position, at an organization when the message names one",
+      "belongs": [
+        "a job title or position, at an organization by name"
+      ],
+      "notBelongs": [
+        {
+          "what": "how they belong to an organization without a title",
+          "goes": "affiliation"
+        },
+        {
+          "what": "a skill",
+          "goes": "capability"
+        }
+      ],
+      "good": [
+        "Head of Finance at Example Co",
+        "Teaching Assistant",
+        "Founder at Example Labs"
+      ],
+      "bad": [
+        {
+          "text": "member of the alumni club",
+          "goes": "affiliation"
+        },
+        {
+          "text": "good at negotiation",
+          "goes": "capability"
+        },
+        {
+          "text": "interview on Monday",
+          "goes": "plan"
+        }
+      ]
+    },
+    "affiliation": {
+      "type": "affiliation",
+      "beliefKind": "affiliation",
+      "subjectKinds": [
+        "owner",
+        "person"
+      ],
+      "fields": [
+        {
+          "name": "relation",
+          "kind": "enum",
+          "required": true
+        },
+        {
+          "name": "organization",
+          "kind": "entity",
+          "required": false
+        },
+        {
+          "name": "organization_name",
+          "kind": "text",
+          "required": false
+        }
+      ],
+      "notice": false,
+      "rulable": false,
+      "typed": true,
+      "aboutYou": true,
+      "legacy": false,
+      "words": "Affiliation",
+      "ask": {
+        "you": "Are you connected to {organization|organization_name}[ as {relation}]?",
+        "them": "Is {who} connected to {organization|organization_name}[ as {relation}]?"
+      },
+      "means": "how the subject belongs to an organization: works there, founded it, studies there, advises it and so on; the organization by its domain, by its name, or both",
+      "belongs": [
+        "how they belong to an organization: works there, studies there, advises it"
+      ],
+      "notBelongs": [
+        {
+          "what": "their title there",
+          "goes": "role"
+        },
+        {
+          "what": "where an organization's process about him stands",
+          "goes": "status"
+        }
+      ],
+      "good": [
+        "student at Example University",
+        "advisor to Example Labs",
+        "employee of Example Co"
+      ],
+      "bad": [
+        {
+          "text": "Head of Finance",
+          "goes": "role"
+        },
+        {
+          "text": "application received at Example University",
+          "goes": "status"
+        },
+        {
+          "text": "visited Example Co offices",
+          "goes": "visited"
+        }
+      ]
+    },
+    "relationship": {
+      "type": "relationship",
+      "beliefKind": "relationship",
+      "subjectKinds": [
+        "person"
+      ],
+      "fields": [
+        {
+          "name": "counterparty",
+          "kind": "entity",
+          "required": true
+        },
+        {
+          "name": "relation",
+          "kind": "enum",
+          "required": true
+        }
+      ],
+      "notice": false,
+      "rulable": false,
+      "typed": true,
+      "aboutYou": false,
+      "legacy": false,
+      "words": "Relationship",
+      "ask": {
+        "you": "Is {counterparty} your {relation}?",
+        "them": "Is {counterparty} {whose} {relation}?"
+      },
+      "means": "how the subject is related to the counterparty: family, friend, colleague, manager and so on; relation is what the counterparty is to the subject",
+      "belongs": [
+        "how two people are related; another person's fact is proposed on that person with propose_person"
+      ],
+      "notBelongs": [
+        {
+          "what": "a fact about them",
+          "goes": "situation"
+        },
+        {
+          "what": "something one promised the other",
+          "goes": "commitment"
+        }
+      ],
+      "good": [
+        "Dana is their sister",
+        "Sam is their manager",
+        "Alex is a friend from school"
+      ],
+      "bad": [
+        {
+          "text": "they are on leave",
+          "goes": "situation"
+        },
+        {
+          "text": "Sam will send the contract",
+          "goes": "commitment"
+        },
+        {
+          "text": "Dana thinks remote work is overrated",
+          "goes": "view"
+        }
+      ]
+    },
+    "consent": {
+      "type": "consent",
+      "beliefKind": "consent",
+      "subjectKinds": [
+        "person"
+      ],
+      "fields": [
+        {
+          "name": "about",
+          "kind": "enum",
+          "required": true
+        },
+        {
+          "name": "to",
+          "kind": "entity",
+          "required": false
+        },
+        {
+          "name": "what",
+          "kind": "text",
+          "required": true
+        }
+      ],
+      "notice": false,
+      "rulable": false,
+      "typed": true,
+      "aboutYou": false,
+      "legacy": false,
+      "words": "Consent",
+      "ask": {
+        "you": "Is this right: {what}?",
+        "them": "Is this right about {who}: {what}?"
+      },
+      "means": "what the subject says they agree to: sharing their details, an introduction, being quoted or being contacted, to whom when the message names them",
+      "belongs": [
+        "what a person agrees to: an introduction, being quoted, their details shared"
+      ],
+      "notBelongs": [
+        {
+          "what": "how a person asks to be contacted",
+          "goes": "contact_rule"
+        },
+        {
+          "what": "something a person promised to do",
+          "goes": "commitment"
+        }
+      ],
+      "good": [
+        "happy to be introduced to the founder",
+        "fine to share my number",
+        "ok to quote me in the newsletter"
+      ],
+      "bad": [
+        {
+          "text": "call me after six",
+          "goes": "contact_rule"
+        },
+        {
+          "text": "will send the deck tomorrow",
+          "goes": "commitment"
+        },
+        {
+          "text": "likes long walks",
+          "goes": "preference"
+        }
+      ]
+    },
+    "contact_rule": {
+      "type": "contact_rule",
+      "beliefKind": "contact_rule",
+      "subjectKinds": [
+        "person"
+      ],
+      "fields": [
+        {
+          "name": "rule",
+          "kind": "enum",
+          "required": true
+        },
+        {
+          "name": "channel",
+          "kind": "enum",
+          "required": true
+        },
+        {
+          "name": "what",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "until",
+          "kind": "date",
+          "required": false
+        }
+      ],
+      "notice": false,
+      "rulable": false,
+      "typed": true,
+      "aboutYou": false,
+      "legacy": false,
+      "words": "How to contact",
+      "ask": {
+        "you": "Is this how you want to be reached: {rule}?",
+        "them": "Is this how {who} wants to be reached: {rule}?"
+      },
+      "means": "how the subject asks to be contacted or not: not at all, only through someone, by a preferred channel, or not before a date",
+      "belongs": [
+        "how a person asks to be contacted, or not to be"
+      ],
+      "notBelongs": [
+        {
+          "what": "what a person agrees to",
+          "goes": "consent"
+        },
+        {
+          "what": "a date to meet",
+          "goes": "plan"
+        }
+      ],
+      "good": [
+        "please do not call me at work",
+        "reach me only through my assistant",
+        "email rather than text"
+      ],
+      "bad": [
+        {
+          "text": "happy to be introduced",
+          "goes": "consent"
+        },
+        {
+          "text": "coffee on Monday",
+          "goes": "plan"
+        },
+        {
+          "text": "prefers aisle seats",
+          "goes": "preference"
+        }
+      ]
+    },
+    "client_preference": {
+      "type": null,
+      "beliefKind": null,
+      "subjectKinds": [
+        "owner"
+      ],
+      "fields": [],
+      "notice": false,
+      "rulable": false,
+      "typed": false,
+      "aboutYou": false,
+      "legacy": false,
+      "words": "How your agents should work",
+      "ask": {
+        "you": "Should your agents work this way: {what}?",
+        "them": "Should your agents work this way: {what}?"
+      },
+      "means": "how the owner wants one of their agents to work: which tool to use, what to check, how to write; kept for that agent only (propose_about_you with scope this_client), never a fact about their life",
+      "belongs": [
+        "an instruction to his agents"
+      ],
+      "notBelongs": [
+        {
+          "what": "a lasting like or dislike about his life",
+          "goes": "preference"
+        },
+        {
+          "what": "a limit on what they can do",
+          "goes": "constraint"
+        }
+      ],
+      "good": [
+        "draft every reply for review before sending",
+        "check the order page before writing support",
+        "try the saved autofill first"
+      ],
+      "bad": [
+        {
+          "text": "aisle seats",
+          "goes": "preference"
+        },
+        {
+          "text": "no calls on Sundays",
+          "goes": "constraint"
+        },
+        {
+          "text": "remote teams ship faster",
+          "goes": "view"
+        }
+      ]
+    },
+    "project_fact": {
+      "type": "project.fact",
+      "beliefKind": null,
+      "subjectKinds": [
+        "project"
+      ],
+      "fields": [
+        {
+          "name": "what",
+          "kind": "text",
+          "required": true
+        }
+      ],
+      "phrase": "what",
+      "notice": false,
+      "rulable": false,
+      "typed": false,
+      "aboutYou": false,
+      "legacy": false,
+      "words": "Project detail",
+      "ask": {
+        "you": "Is this right about the project: {what}?",
+        "them": "Is this right about the project: {what}?"
+      },
+      "means": "one detail about the project the finding is filed under, such as a specification, an order or a part; what copies the words that state it",
+      "belongs": [
+        "a specification of the project: the kiln takes grade 23 firebrick",
+        "an order or a part for it: two burners ordered from the supplier"
+      ],
+      "notBelongs": [
+        {
+          "what": "something someone will do for the project next",
+          "goes": "project_next_step"
+        },
+        {
+          "what": "a fact about the owner, with nothing about the project",
+          "goes": "situation"
+        }
+      ],
+      "good": [
+        "The kiln takes grade 23 firebrick",
+        "Two burners were ordered from the supplier",
+        "The frame is 90 cm wide"
+      ],
+      "bad": [
+        {
+          "text": "Order the firebrick by Friday",
+          "goes": "project_next_step"
+        },
+        {
+          "text": "Rhea will send the drawings on Monday",
+          "goes": "commitment"
+        },
+        {
+          "text": "The owner is moving house this spring",
+          "goes": "situation"
+        }
+      ]
+    },
+    "project_next_step": {
+      "type": "project.next_step",
+      "beliefKind": null,
+      "subjectKinds": [
+        "project"
+      ],
+      "fields": [
+        {
+          "name": "what",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "name": "who",
+          "kind": "entity",
+          "required": true
+        },
+        {
+          "name": "due",
+          "kind": "date",
+          "required": false
+        }
+      ],
+      "phrase": "what",
+      "notice": false,
+      "rulable": false,
+      "typed": false,
+      "aboutYou": false,
+      "legacy": false,
+      "words": "Project next step",
+      "ask": {
+        "you": "Is this a next step for the project: {what}?",
+        "them": "Is this a next step for the project: {what}?"
+      },
+      "means": "one thing to do next on the project the finding is filed under; what copies the words that state it, who is the owner or the person to do it, due is the date when one is given",
+      "belongs": [
+        "an open loop on the project: order the firebrick by Friday",
+        "someone's next action on it: Rhea checks the frame drawings"
+      ],
+      "notBelongs": [
+        {
+          "what": "a promise one person made to another",
+          "goes": "commitment"
+        },
+        {
+          "what": "a detail of the project already settled",
+          "goes": "project_fact"
+        }
+      ],
+      "good": [
+        "Order the firebrick by Friday",
+        "Check the frame drawings",
+        "Book the gas fitter next week"
+      ],
+      "bad": [
+        {
+          "text": "The kiln takes grade 23 firebrick",
+          "goes": "project_fact"
+        },
+        {
+          "text": "Rhea promised Theo the drawings by Monday",
+          "goes": "commitment"
+        },
+        {
+          "text": "The owner has a dentist appointment on March 9",
+          "goes": "plan"
+        }
+      ]
+    }
+  }
+} as const;

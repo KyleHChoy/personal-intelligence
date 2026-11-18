@@ -1,0 +1,52 @@
+#!/bin/sh
+# agent-file NAME: standard input to one of an agent API endpoint's two copies, in the directory of
+# the user it runs as: /data/pimcp as pimcp, for `pi mcp`, and /data/pihttp as pihttp, for `pi http`.
+# `keys` to keys.json, `journal` to keys.json.erasures. Root runs it as each user from
+# lib/agent-keys; the timer and the owner's page (`pi web serve`), as pi, run `agent-file journal`
+# through pi's sudo rule for each, since pi appends to the journal without root. pi is above both, so
+# the rules give pi nothing it lacks.
+#
+# The bytes go to a new file that mktemp makes, mode 0600, beside the copy, and are renamed over
+# it only once all are written and checked: `pi http` reads the old copy or the new one, never half
+# of one, and an empty or cut-short input leaves the old copy in place. The journal's copy is its
+# mark alone, one line `{"mark":N}`, and anything else is refused, so a rule cannot hand the user
+# more than the one number, as is a mark lower than the copy's. Nothing on stdout; a refusal is
+# its exit status.
+set -eu
+umask 077
+cd /
+PATH=/usr/local/bin:/usr/bin:/bin
+user=$(id -un)
+case $user in pimcp | pihttp) ;; *) echo 'only pimcp or pihttp runs this' >&2; exit 1 ;; esac
+case ${1:-}/$# in
+  keys/1) file=/data/$user/keys.json ;;
+  journal/1) file=/data/$user/keys.json.erasures ;;
+  *) echo 'agent-file: keys or journal' >&2; exit 2 ;;
+esac
+new=$(mktemp "$file.XXXXXX")
+trap 'rm -f "$new"' EXIT
+cat > "$new"
+[ -s "$new" ]
+if [ "$1" = journal ]; then
+  # The whole input is the one mark line and its newline, byte for byte: nothing after it, with a
+  # newline or without.
+  line=$(head -n 1 "$new")
+  printf '%s\n' "$line" | grep -Eqx '\{"mark":(0|[1-9][0-9]{0,14})\}'
+  [ $(($(wc -c < "$new"))) -eq $((${#line} + 1)) ]
+  # The journal only grows, and its writers (root's lib/agent-keys, the timer and the owner's page,
+  # as pi) take no common lock, so an older mark could land after a newer one: one lower than the
+  # copy in place is refused. The copy is the user's own file, read only when it is a regular file and
+  # not a link, its first 64 bytes; one that is no mark is replaced.
+  if [ -f "$file" ] && [ ! -L "$file" ]; then
+    old=$(head -c 64 "$file" | head -n 1)
+    old=${old#'{"mark":'}
+    old=${old%'}'}
+    if printf '%s\n' "$old" | grep -Eqx '0|[1-9][0-9]{0,14}'; then
+      next=${line#'{"mark":'}
+      next=${next%'}'}
+      [ "$next" -ge "$old" ] || { echo 'agent-file: a mark lower than the copy' >&2; exit 1; }
+    fi
+  fi
+fi
+mv -f "$new" "$file"
+trap - EXIT

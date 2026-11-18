@@ -1,0 +1,17 @@
+#!/bin/sh
+# The work-notice sender's supervisor:
+# `pi notify` as pinotify, from notify.env, through lib/notify-run, as wake-serve runs
+# `pi extract wake`. The entrypoint starts this as pinotify, in the background, when it wrote
+# notify.env. pinotify is not root, so it starts lib/notify-run itself rather than the root-only
+# wrapper pi-notify, which runs the same; and it is not in the group pi, so its lines go to a file
+# of its own on the volume, /data/pinotify/notify.log: one notify_sweep line a wake or sweep, one
+# notify_failed line per failure, and notify_end with lost, renew or stopped. The sender ends with
+# 0 once a day (its renewal) and with 1 (`unavailable`) when its connection is lost; either way it
+# is started again. The read hold and the kill switch it obeys itself, logging `held`.
+#
+# Run by the box's one supervisor (lib/supervise), with its start and end
+# lines (`notify_start`, `notify_end` with the exit code), its backoff, so one that ends within a
+# minute of its start, as it does before pi-migrate has set its password, waits longer each time,
+# up to five minutes, and its rotation by size during the run.
+[ -e /run/pinotify/notify.env ] || exit 0
+exec /usr/local/lib/pi/supervise notify /data/pinotify/notify.log --state /run/pistate/notify.restarts -- /usr/local/lib/pi/notify-run notify

@@ -1,0 +1,25 @@
+#!/bin/sh
+# The agent API over HTTPS: `pi http` as pihttp, from /run/pihttp/http.env, which holds the reader
+# role's URL, pihttp's own key copy, the port, the read hold's path, the public origin and the
+# proxy switch. pihttp reads no client token file and none of pimcp's files: each request's token
+# comes with the request and is resolved in the database. The
+# host ends TLS. Its lines go to a file on pihttp's own directory of the volume, not the
+# container's log, as sync's do. The entrypoint starts this only when the owner configured the
+# endpoint (PI_HTTP_BASE_URL or PI_HTTP_ENABLED).
+#
+# Run by the box's one supervisor (lib/supervise), with its start and end
+# lines, its backoff and its rotation by size during the run. As pi-mcp does, it does not start
+# beside the read hold: pi-read-hold ends it, and it starts again only once the hold is cleared,
+# checking the erasure journal as it starts. pi-read-hold finds it by its command line, `mcp-run
+# http http`.
+#
+# Under the hold its port is not left with nothing listening, which the host's proxy answers with a
+# 502 that a caller cannot tell from a fault: the supervisor runs lib/held-answer there in its
+# place, which answers every request 503 unavailable, as `pi http` does under the hold, and reads
+# nothing. The port is the one the entrypoint hands this script, the host's PORT, as http.env's
+# PI_HTTP_PORT is; given none that is a port, from 1 to 65535, nothing answers there under the hold.
+case ${1:-} in
+  '' | 0* | *[!0-9]* | ??????*) set -- ;;
+  *) if [ "$1" -le 65535 ]; then set -- --while-held "/usr/local/lib/pi/held-answer $1"; else set --; fi ;;
+esac
+exec /usr/local/lib/pi/supervise http /data/pihttp/http.log --state /run/pistate/http.restarts --hold /data/read-hold "$@" -- /usr/local/lib/pi/mcp-run http http

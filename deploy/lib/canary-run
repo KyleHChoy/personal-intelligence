@@ -1,0 +1,43 @@
+#!/bin/sh
+# canary-run DAY STARTED: one run of the standing end-to-end check, its six steps in order, each as
+# pi with its own role's file: plant (sync.env), extract (extract.env), answer (admin.env), the
+# records of the proposal asked again (sync.env), extract, check (admin.env). A step that fails is
+# not this script's to report: the check that follows finds what is missing and names the hop. Prints
+# `busy` and stops, leaving the day untried, when a sync or an extract holds its lock, or a hold is
+# set before a step. An extract that printed `budget` asked the model nothing, and the check is told,
+# so what needed the model is `budget`, not red. The check's own lines, `source code` each, are what
+# it prints otherwise.
+PATH=/usr/local/bin:/usr/bin:/bin
+day=$1
+started=$2
+
+spent=
+free() {
+  if [ -e /data/sync-hold ] || [ -e /data/read-hold ]; then
+    echo busy
+    exit 0
+  fi
+}
+# step COMMAND...: the command, its stdout kept to read for `busy`.
+step() {
+  free
+  out=$("$@") || out=
+  case $out in
+    busy)
+      echo busy
+      exit 0
+      ;;
+    budget) spent=--budget ;;
+  esac
+}
+# At most this many model calls in one of its extractions: one short item a lane.
+calls=30
+
+step /usr/local/bin/pi-sync canary plant --day "$day"
+step /usr/local/bin/pi-extract extract --canary --max-calls "$calls"
+step /usr/local/bin/pi-admin canary answer --day "$day"
+step /usr/local/bin/pi-sync sync --records
+step /usr/local/bin/pi-extract extract --canary --max-calls "$calls"
+free
+# shellcheck disable=SC2086 # empty or one flag
+exec /usr/local/bin/pi-admin canary check --day "$day" --started "$started" $spent

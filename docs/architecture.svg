@@ -1,0 +1,150 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="975" viewBox="0 0 1200 975" role="img" aria-label="Personal Intelligence: how data moves from sources to agents, and why each layer exists">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#7d8b98"/>
+    </marker>
+    <style>
+      text { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+      .zone { font-size: 11px; fill: #7d8b98; letter-spacing: 1.5px; }
+      .title { font-size: 15px; font-weight: 700; fill: #e6edf3; }
+      .line { font-size: 12px; fill: #a9b6c2; }
+      .why-h { font-size: 11px; fill: #c9a86a; letter-spacing: 1.5px; }
+      .why { font-size: 12.5px; fill: #d4dbe2; }
+      .tag { font-size: 11px; fill: #c8b8ef; }
+      .box { fill: #17212a; stroke: #2e3d49; stroke-width: 1.2; }
+      .vault { fill: #241d36; stroke: #5b4a8a; stroke-width: 1.4; }
+      .db { fill: #2a2416; stroke: #8a7240; stroke-width: 1.4; }
+      .out { fill: #1c2a22; stroke: #4c7a5e; stroke-width: 1.4; }
+      .pill { fill: #2f2647; stroke: #6c5aa3; stroke-width: 1; }
+      .flow { stroke: #7d8b98; stroke-width: 1.4; fill: none; }
+      .loop { stroke: #6c5aa3; stroke-width: 1.4; fill: none; stroke-dasharray: 5 4; }
+      .tie { stroke: #3a4a57; stroke-width: 1; stroke-dasharray: 2 4; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="975" fill="#11181e"/>
+
+  <text x="40" y="44" style="font-size:22px;font-weight:700;fill:#e6edf3">Personal Intelligence</text>
+  <text x="40" y="68" class="line">Evidence in, facts with provenance, answers under each reader's clearance, agents at work. One way out.</text>
+  <text x="800" y="68" class="why-h">WHY IT IS BUILT THIS WAY</text>
+
+  <!-- Sources -->
+  <text x="40" y="108" class="zone">SOURCES</text>
+  <rect class="box" x="40" y="118" width="168" height="62" rx="6"/>
+  <text x="54" y="142" class="title">Mail, calendar</text>
+  <text x="54" y="162" class="line">synced every few min</text>
+  <rect class="box" x="220" y="118" width="168" height="62" rx="6"/>
+  <text x="234" y="142" class="title">Docs, contacts</text>
+  <text x="234" y="162" class="line">files, address books</text>
+  <rect class="box" x="400" y="118" width="168" height="62" rx="6"/>
+  <text x="414" y="142" class="title">Meetings, chats</text>
+  <text x="414" y="162" class="line">captured on device</text>
+  <rect class="box" x="580" y="118" width="180" height="62" rx="6" style="stroke-dasharray:5 4;stroke:#6c5aa3"/>
+  <text x="594" y="142" class="title">Agent records</text>
+  <text x="594" y="162" class="line">what agents found</text>
+  <path class="flow" d="M124,180 V214" marker-end="url(#arrow)"/>
+  <path class="flow" d="M304,180 V214" marker-end="url(#arrow)"/>
+  <path class="flow" d="M484,180 V214" marker-end="url(#arrow)"/>
+  <path class="flow" d="M670,180 V214" marker-end="url(#arrow)"/>
+
+  <!-- Vault -->
+  <rect class="vault" x="40" y="218" width="720" height="92" rx="6"/>
+  <text x="56" y="244" class="title">Vault</text>
+  <text x="56" y="266" class="line">every item stored whole and unchanged, treated as untrusted text</text>
+  <rect class="pill" x="56" y="278" width="44" height="20" rx="4"/><text x="66" y="292" class="tag">own</text>
+  <rect class="pill" x="108" y="278" width="62" height="20" rx="4"/><text x="118" y="292" class="tag">public</text>
+  <rect class="pill" x="178" y="278" width="118" height="20" rx="4"/><text x="188" y="292" class="tag">agent:&lt;client&gt;</text>
+  <rect class="pill" x="304" y="278" width="142" height="20" rx="4"/><text x="314" y="292" class="tag">restricted:&lt;category&gt;</text>
+  <text x="460" y="292" class="line">a label per item, a key per compartment</text>
+  <line class="tie" x1="760" y1="264" x2="796" y2="264"/>
+  <text x="800" y="246" class="why">The source is the authority. Keeping it</text>
+  <text x="800" y="264" class="why">unchanged means every fact can be traced</text>
+  <text x="800" y="282" class="why">to a passage and rebuilt when models improve.</text>
+  <path class="flow" d="M400,310 V344" marker-end="url(#arrow)"/>
+
+  <!-- Pipeline -->
+  <text x="40" y="340" class="zone">PIPELINE</text>
+  <rect class="box" x="40" y="350" width="220" height="74" rx="6"/>
+  <text x="56" y="374" class="title">Triage</text>
+  <text x="56" y="394" class="line">rules, then a small model;</text>
+  <text x="56" y="412" class="line">holds injected instructions</text>
+  <rect class="box" x="290" y="350" width="220" height="74" rx="6"/>
+  <text x="306" y="374" class="title">Extract</text>
+  <text x="306" y="394" class="line">one model call per item,</text>
+  <text x="306" y="412" class="line">closed schema, no tools</text>
+  <rect class="box" x="540" y="350" width="220" height="74" rx="6"/>
+  <text x="556" y="374" class="title">Check</text>
+  <text x="556" y="394" class="line">identity, ontology, label;</text>
+  <text x="556" y="412" class="line">code decides what commits</text>
+  <path class="flow" d="M260,387 H286" marker-end="url(#arrow)"/>
+  <path class="flow" d="M510,387 H536" marker-end="url(#arrow)"/>
+  <line class="tie" x1="760" y1="387" x2="796" y2="387"/>
+  <text x="800" y="370" class="why">Models propose and code decides. A model</text>
+  <text x="800" y="388" class="why">reads one item, has no tools, and can never</text>
+  <text x="800" y="406" class="why">set a label or cause an action.</text>
+  <path class="flow" d="M650,424 V458" marker-end="url(#arrow)"/>
+
+  <!-- Knowledge -->
+  <text x="40" y="454" class="zone">KNOWLEDGE</text>
+  <rect class="box" x="40" y="464" width="340" height="80" rx="6"/>
+  <text x="56" y="488" class="title">Facts</text>
+  <text x="56" y="508" class="line">one statement, one source, a passage;</text>
+  <text x="56" y="526" class="line">never edited, labelled by what it read</text>
+  <rect class="box" x="420" y="464" width="340" height="80" rx="6"/>
+  <text x="436" y="488" class="title">Current answers</text>
+  <text x="436" y="508" class="line">computed by code, under the</text>
+  <text x="436" y="526" class="line">reader's clearance</text>
+  <path class="flow" d="M380,504 H416" marker-end="url(#arrow)"/>
+  <line class="tie" x1="760" y1="504" x2="796" y2="504"/>
+  <text x="800" y="486" class="why">Store durable facts, compute answers when</text>
+  <text x="800" y="504" class="why">asked. Each reader gets answers built only</text>
+  <text x="800" y="522" class="why">from facts it may read, so nothing leaks.</text>
+  <path class="flow" d="M400,544 V578" marker-end="url(#arrow)"/>
+
+  <!-- Access -->
+  <text x="40" y="574" class="zone">ACCESS, ENFORCED IN POSTGRES</text>
+  <rect class="db" x="40" y="584" width="720" height="70" rx="6"/>
+  <text x="56" y="610" class="title">Clearance per agent</text>
+  <text x="56" y="632" class="line">row-level security on every table · checked functions · label triggers · encryption</text>
+  <line class="tie" x1="760" y1="619" x2="796" y2="619"/>
+  <text x="800" y="601" class="why">Access lives in the database. A bug in the</text>
+  <text x="800" y="619" class="why">application cannot widen what an agent reads,</text>
+  <text x="800" y="637" class="why">and tests plant hidden rows to prove it.</text>
+  <path class="flow" d="M220,654 V688" marker-end="url(#arrow)"/>
+  <path class="flow" d="M580,654 V688" marker-end="url(#arrow)"/>
+
+  <!-- Interface and work -->
+  <rect class="box" x="40" y="692" width="340" height="80" rx="6"/>
+  <text x="56" y="716" class="title">Agent interface</text>
+  <text x="56" y="736" class="line">one tool catalogue over stdio and</text>
+  <text x="56" y="754" class="line">HTTPS; fixed query plans and budgets</text>
+  <rect class="box" x="420" y="692" width="340" height="80" rx="6"/>
+  <text x="436" y="716" class="title">Work layer</text>
+  <text x="436" y="736" class="line">gaps become tasks, routed by role;</text>
+  <text x="436" y="754" class="line">outcomes in new evidence close them</text>
+  <path class="flow" d="M420,732 H384" marker-end="url(#arrow)"/>
+  <line class="tie" x1="760" y1="732" x2="796" y2="732"/>
+  <text x="800" y="714" class="why">Agents are clients of the system: any</text>
+  <text x="800" y="732" class="why">agent can be swapped in, each with only the</text>
+  <text x="800" y="750" class="why">access it needs. The system raises the work.</text>
+  <path class="flow" d="M210,772 V806" marker-end="url(#arrow)"/>
+
+  <!-- Agents -->
+  <rect class="box" x="40" y="810" width="340" height="62" rx="31" style="stroke:#6c5aa3"/>
+  <text x="210" y="837" class="title" text-anchor="middle">Agents</text>
+  <text x="210" y="857" class="line" text-anchor="middle">read, research, draft, report</text>
+  <path class="loop" d="M40,841 H18 V149 H36" marker-end="url(#arrow)"/>
+  <text x="14" y="500" class="tag" transform="rotate(-90 14 500)" text-anchor="middle">records return as evidence</text>
+  <path class="flow" d="M380,841 H416" marker-end="url(#arrow)"/>
+
+  <!-- Out -->
+  <rect class="out" x="420" y="810" width="340" height="62" rx="6"/>
+  <text x="436" y="836" class="title">Outbound checks</text>
+  <text x="436" y="856" class="line">nine checks; the person sends each message</text>
+  <line class="tie" x1="760" y1="841" x2="796" y2="841"/>
+  <text x="800" y="832" class="why">One way out. Drafts pass the same checks</text>
+  <text x="800" y="850" class="why">twice, and only the person sends.</text>
+
+  <text x="40" y="930" class="line">Agent records re-enter as evidence under the agent's own label and go through the same pipeline as mail.</text>
+  <text x="40" y="952" class="line">Erasure removes a person or item from every table that derived anything from it, and stays in force after a restore.</text>
+</svg>

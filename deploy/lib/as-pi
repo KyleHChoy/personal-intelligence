@@ -1,0 +1,16 @@
+#!/bin/sh
+# as-pi NAME [pi arguments]: become the pi user with an empty environment, then `run`, which
+# loads /run/pi/NAME.env. root drops to pi, pi stays pi, and anyone else is refused: the agent
+# user has no way through here.
+#
+# The environment is emptied before the uid changes, not after: env -i runs while still root,
+# then setpriv drops to pi. So no process that runs as pi ever holds what the caller passed in
+# its environment, the Postgres superuser password among it when pi-migrate calls this.
+set -eu
+cd /
+clean='/usr/bin/env -i PATH=/usr/local/bin:/usr/bin:/bin'
+case $(id -un) in
+  pi) exec $clean /usr/local/lib/pi/run "$@" ;;
+  root) exec $clean /usr/bin/setpriv --reuid=pi --regid=pi --init-groups /usr/local/lib/pi/run "$@" ;;
+  *) echo 'only root and pi run this' >&2; exit 1 ;;
+esac

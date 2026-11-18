@@ -1,0 +1,24 @@
+{
+  "name": "@intelligence/pi",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/main.ts",
+  "types": "./src/main.ts",
+  "bin": {
+    "pi": "./src/main.ts"
+  },
+  "dependencies": {
+    "@intelligence/contracts": "workspace:*",
+    "@intelligence/personal-core": "workspace:*",
+    "@intelligence/personal-google": "workspace:*",
+    "@intelligence/personal-store": "workspace:*",
+    "@intelligence/personal-mcp": "workspace:*",
+    "@intelligence/personal-models": "workspace:*",
+    "@intelligence/personal-extract": "workspace:*",
+    "@intelligence/personal-ladder": "workspace:*"
+  },
+  "devDependencies": {
+    "@intelligence/personal-reasoner": "workspace:*"
+  }
+}

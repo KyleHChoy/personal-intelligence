@@ -1,0 +1,2647 @@
+{
+ "both": {
+  "get_self": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "event employer:example 03-11T12:00",
+    "event own 03-13T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own",
+    "fact c-work",
+    "fact g-owner",
+    "fact p-31",
+    "fact p-32",
+    "fact p-33",
+    "fact p-34",
+    "fact p-35",
+    "fact p-36",
+    "fact p-37",
+    "fact p-38",
+    "fact p-39"
+   ],
+   "goals": [
+    "goal 1"
+   ],
+   "lessons": []
+  },
+  "get_self history": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "event employer:example 03-11T12:00",
+    "event own 03-13T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own",
+    "fact c-work",
+    "fact g-owner",
+    "fact p-31",
+    "fact p-32",
+    "fact p-33",
+    "fact p-34",
+    "fact p-35",
+    "fact p-36",
+    "fact p-37",
+    "fact p-38",
+    "fact p-39"
+   ],
+   "goals": [
+    "goal 1"
+   ],
+   "lessons": []
+  },
+  "get_self work": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [
+    "goal 1"
+   ],
+   "lessons": []
+  },
+  "get_self moves": {
+   "bound": [
+    "message own 03-05T12:00"
+   ],
+   "shown": [
+    "event employer:example 03-11T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own"
+   ],
+   "goals": [
+    "goal 1"
+   ],
+   "lessons": []
+  },
+  "get_self domain": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [
+    "goal 1"
+   ],
+   "lessons": []
+  },
+  "search": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "get_entity person": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "event employer:example 03-08T10:00",
+    "event employer:example 03-11T12:00",
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact n-02",
+    "fact n-03",
+    "fact n-04",
+    "fact n-05",
+    "fact n-06",
+    "fact n-07",
+    "fact n-08",
+    "fact n-09",
+    "fact n-10",
+    "fact n-11",
+    "fact n-12",
+    "fact n-13",
+    "fact n-14",
+    "fact n-15",
+    "fact n-16",
+    "fact n-17",
+    "fact n-18",
+    "fact n-19",
+    "fact n-20",
+    "fact n-21",
+    "fact n-22",
+    "fact n-23",
+    "fact n-24",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29",
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_entity organization": {
+   "bound": [],
+   "shown": [
+    "message employer:example 02-26T12:00",
+    "message own 03-07T12:00"
+   ],
+   "factKeyFps": [
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_entity project": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "get_timeline": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "event employer:example 03-08T10:00",
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-08T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact c-own",
+    "fact n-00",
+    "fact n-01",
+    "fact n-02",
+    "fact n-03",
+    "fact n-04",
+    "fact n-05",
+    "fact n-06",
+    "fact n-07",
+    "fact n-08",
+    "fact n-09",
+    "fact n-10",
+    "fact n-11",
+    "fact n-12",
+    "fact n-13",
+    "fact n-14",
+    "fact n-15",
+    "fact n-16",
+    "fact n-17",
+    "fact n-18",
+    "fact n-19",
+    "fact n-20",
+    "fact n-21",
+    "fact n-22",
+    "fact n-23",
+    "fact n-24",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29",
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "find_messages": {
+   "bound": [],
+   "shown": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "read_message": {
+   "bound": [
+    "message own 03-05T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "read_item": {
+   "bound": [],
+   "shown": [
+    "message own 03-05T12:00"
+   ],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "find_facts type": {
+   "bound": [
+    "message own 03-05T12:00",
+    "message own 03-06T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact c-loose",
+    "fact c-own"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "find_facts role": {
+   "bound": [
+    "message employer:example 02-26T12:00"
+   ],
+   "shown": [
+    "message employer:example 02-26T12:00"
+   ],
+   "factKeyFps": [
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "find_facts entity": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-06T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact n-10",
+    "fact n-11",
+    "fact n-12",
+    "fact n-13",
+    "fact n-14",
+    "fact n-15",
+    "fact n-16",
+    "fact n-17",
+    "fact n-18",
+    "fact n-19",
+    "fact n-20",
+    "fact n-21",
+    "fact n-22",
+    "fact n-23",
+    "fact n-24",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "find_facts belief": {
+   "bound": [
+    "message own 03-05T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact c-own"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_evidence_span": {
+   "bound": [
+    "message own 03-05T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact c-own"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_commitments": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message own 03-05T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact c-own",
+    "fact c-work"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_commitments with": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message own 03-05T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact c-own",
+    "fact c-work"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_beliefs": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-06T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact n-10",
+    "fact n-11",
+    "fact n-12",
+    "fact n-13",
+    "fact n-14",
+    "fact n-15",
+    "fact n-16",
+    "fact n-17",
+    "fact n-18",
+    "fact n-19",
+    "fact n-20",
+    "fact n-21",
+    "fact n-22",
+    "fact n-23",
+    "fact n-24",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_beliefs entity": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-06T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact n-10",
+    "fact n-11",
+    "fact n-12",
+    "fact n-13",
+    "fact n-14",
+    "fact n-15",
+    "fact n-16",
+    "fact n-17",
+    "fact n-18",
+    "fact n-19",
+    "fact n-20",
+    "fact n-21",
+    "fact n-22",
+    "fact n-23",
+    "fact n-24",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_open_items": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message own 03-05T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact c-own",
+    "fact c-work"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_changes": {
+   "bound": [
+    "message own 03-05T12:00"
+   ],
+   "shown": [
+    "message own 03-07T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "build_context_pack agent_bootstrap": {
+   "bound": [],
+   "shown": [
+    "event employer:example 03-11T12:00",
+    "event own 03-13T12:00",
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own",
+    "fact c-work",
+    "fact g-owner",
+    "fact p-21",
+    "fact p-22",
+    "fact p-23",
+    "fact p-24",
+    "fact p-25",
+    "fact p-26",
+    "fact p-27",
+    "fact p-28",
+    "fact p-29",
+    "fact p-30",
+    "fact p-31",
+    "fact p-32",
+    "fact p-33",
+    "fact p-34",
+    "fact p-35",
+    "fact p-36",
+    "fact p-37",
+    "fact p-38",
+    "fact p-39"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "build_context_pack person_brief": {
+   "bound": [],
+   "shown": [
+    "event employer:example 03-08T10:00",
+    "event employer:example 03-11T12:00",
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact c-own",
+    "fact c-work",
+    "fact n-00",
+    "fact n-01",
+    "fact n-02",
+    "fact n-03",
+    "fact n-04",
+    "fact n-05",
+    "fact n-06",
+    "fact n-07",
+    "fact n-08",
+    "fact n-09",
+    "fact n-10",
+    "fact n-11",
+    "fact n-12",
+    "fact n-13",
+    "fact n-14",
+    "fact n-15",
+    "fact n-16",
+    "fact n-17",
+    "fact n-18",
+    "fact n-19",
+    "fact n-20",
+    "fact n-21",
+    "fact n-22",
+    "fact n-23",
+    "fact n-24",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29",
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "build_context_pack meeting_prep": {
+   "bound": [],
+   "shown": [
+    "event employer:example 03-08T10:00",
+    "event own 03-13T12:00",
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-08T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own",
+    "fact c-work",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29",
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "context task": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "event employer:example 03-11T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own",
+    "fact c-work",
+    "fact g-owner",
+    "fact p-31",
+    "fact p-32",
+    "fact p-33",
+    "fact p-34",
+    "fact p-35",
+    "fact p-36",
+    "fact p-37",
+    "fact p-38",
+    "fact p-39"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "context entity": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "event employer:example 03-11T12:00",
+    "message employer:example 02-26T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact c-own",
+    "fact c-work",
+    "fact n-24",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29",
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "context event": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "event employer:example 03-11T12:00",
+    "message employer:example 02-26T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact c-own",
+    "fact c-work",
+    "fact n-24",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29",
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "sync_memory": {
+   "bound": [],
+   "shown": [
+    "message employer:example 02-18T12:00",
+    "message own 03-05T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own",
+    "fact c-work"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "find_documents": {
+   "bound": [],
+   "shown": [
+    "document own 01-02T00:00",
+    "document own 01-03T00:00"
+   ],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "get_document": {
+   "bound": [
+    "document own 01-02T00:00"
+   ],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "fetch_template": {
+   "bound": [
+    "document own 01-03T00:00"
+   ],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "find_paths": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "list_goals": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [
+    "fact goal 1"
+   ],
+   "goals": [
+    "goal 1"
+   ],
+   "lessons": []
+  },
+  "record_reads": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "read_record": "not_found",
+  "find_records": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "list_people": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "about person": {
+   "bound": [],
+   "shown": [
+    "event employer:example 03-08T10:00",
+    "event employer:example 03-11T12:00",
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact c-own",
+    "fact n-00",
+    "fact n-01",
+    "fact n-02",
+    "fact n-03",
+    "fact n-04",
+    "fact n-05",
+    "fact n-06",
+    "fact n-07",
+    "fact n-08",
+    "fact n-09",
+    "fact n-10",
+    "fact n-11",
+    "fact n-12",
+    "fact n-13",
+    "fact n-14",
+    "fact n-15",
+    "fact n-16",
+    "fact n-17",
+    "fact n-18",
+    "fact n-19",
+    "fact n-20",
+    "fact n-21",
+    "fact n-22",
+    "fact n-23",
+    "fact n-24",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29",
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "about organization": {
+   "bound": [],
+   "shown": [
+    "message employer:example 02-26T12:00"
+   ],
+   "factKeyFps": [
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "about name": {
+   "bound": [],
+   "shown": [
+    "event employer:example 03-08T10:00",
+    "event employer:example 03-11T12:00",
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact c-own",
+    "fact n-00",
+    "fact n-01",
+    "fact n-02",
+    "fact n-03",
+    "fact n-04",
+    "fact n-05",
+    "fact n-06",
+    "fact n-07",
+    "fact n-08",
+    "fact n-09",
+    "fact n-10",
+    "fact n-11",
+    "fact n-12",
+    "fact n-13",
+    "fact n-14",
+    "fact n-15",
+    "fact n-16",
+    "fact n-17",
+    "fact n-18",
+    "fact n-19",
+    "fact n-20",
+    "fact n-21",
+    "fact n-22",
+    "fact n-23",
+    "fact n-24",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29",
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_suggestions": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  }
+ },
+ "own": {
+  "get_self": {
+   "bound": [
+    "message own 03-05T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "event own 03-13T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own",
+    "fact g-owner",
+    "fact p-22",
+    "fact p-24",
+    "fact p-26",
+    "fact p-28",
+    "fact p-30",
+    "fact p-32",
+    "fact p-34",
+    "fact p-36",
+    "fact p-38"
+   ],
+   "goals": [
+    "goal 1"
+   ],
+   "lessons": []
+  },
+  "get_self history": {
+   "bound": [
+    "message own 03-05T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "event own 03-13T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own",
+    "fact g-owner",
+    "fact p-22",
+    "fact p-24",
+    "fact p-26",
+    "fact p-28",
+    "fact p-30",
+    "fact p-32",
+    "fact p-34",
+    "fact p-36",
+    "fact p-38"
+   ],
+   "goals": [
+    "goal 1"
+   ],
+   "lessons": []
+  },
+  "get_self work": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [
+    "goal 1"
+   ],
+   "lessons": []
+  },
+  "get_self moves": {
+   "bound": [
+    "message own 03-05T12:00"
+   ],
+   "shown": [
+    "event own 03-13T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own"
+   ],
+   "goals": [
+    "goal 1"
+   ],
+   "lessons": []
+  },
+  "get_self domain": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [
+    "goal 1"
+   ],
+   "lessons": []
+  },
+  "search": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "get_entity person": {
+   "bound": [
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "event own 03-13T12:00",
+    "message own 03-05T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact n-01",
+    "fact n-03",
+    "fact n-05",
+    "fact n-07",
+    "fact n-09",
+    "fact n-11",
+    "fact n-13",
+    "fact n-15",
+    "fact n-17",
+    "fact n-19",
+    "fact n-21",
+    "fact n-23",
+    "fact n-25",
+    "fact n-27",
+    "fact n-29"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_entity organization": {
+   "bound": [],
+   "shown": [
+    "message own 03-07T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_entity project": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "get_timeline": {
+   "bound": [
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact c-own",
+    "fact n-01",
+    "fact n-03",
+    "fact n-05",
+    "fact n-07",
+    "fact n-09",
+    "fact n-11",
+    "fact n-13",
+    "fact n-15",
+    "fact n-17",
+    "fact n-19",
+    "fact n-21",
+    "fact n-23",
+    "fact n-25",
+    "fact n-27",
+    "fact n-29"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "find_messages": {
+   "bound": [],
+   "shown": [
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "read_message": {
+   "bound": [
+    "message own 03-05T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "read_item": {
+   "bound": [],
+   "shown": [
+    "message own 03-05T12:00"
+   ],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "find_facts type": {
+   "bound": [
+    "message own 03-05T12:00",
+    "message own 03-06T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact c-loose",
+    "fact c-own"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "find_facts role": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "find_facts entity": {
+   "bound": [
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "message own 03-07T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact c-own",
+    "fact n-01",
+    "fact n-03",
+    "fact n-05",
+    "fact n-07",
+    "fact n-09",
+    "fact n-11",
+    "fact n-13",
+    "fact n-15",
+    "fact n-17",
+    "fact n-19",
+    "fact n-21",
+    "fact n-23",
+    "fact n-25",
+    "fact n-27",
+    "fact n-29"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "find_facts belief": {
+   "bound": [
+    "message own 03-05T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact c-own"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_evidence_span": {
+   "bound": [
+    "message own 03-05T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact c-own"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_commitments": {
+   "bound": [
+    "message own 03-05T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact c-own"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_commitments with": {
+   "bound": [
+    "message own 03-05T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact c-own"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_beliefs": {
+   "bound": [
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "message own 03-07T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact g-owner",
+    "fact n-01",
+    "fact n-03",
+    "fact n-05",
+    "fact n-07",
+    "fact n-09",
+    "fact n-11",
+    "fact n-13",
+    "fact n-15",
+    "fact n-17",
+    "fact n-19",
+    "fact n-21",
+    "fact n-23",
+    "fact n-25",
+    "fact n-27",
+    "fact n-29",
+    "fact p-34",
+    "fact p-36",
+    "fact p-38"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_beliefs entity": {
+   "bound": [
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "message own 03-07T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact n-01",
+    "fact n-03",
+    "fact n-05",
+    "fact n-07",
+    "fact n-09",
+    "fact n-11",
+    "fact n-13",
+    "fact n-15",
+    "fact n-17",
+    "fact n-19",
+    "fact n-21",
+    "fact n-23",
+    "fact n-25",
+    "fact n-27",
+    "fact n-29"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_open_items": {
+   "bound": [
+    "message own 03-05T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact c-own"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_changes": {
+   "bound": [
+    "message own 03-05T12:00"
+   ],
+   "shown": [
+    "message own 03-05T12:00",
+    "message own 03-07T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "build_context_pack agent_bootstrap": {
+   "bound": [],
+   "shown": [
+    "event own 03-13T12:00",
+    "message own 03-05T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own",
+    "fact g-owner",
+    "fact p-02",
+    "fact p-04",
+    "fact p-06",
+    "fact p-08",
+    "fact p-10",
+    "fact p-12",
+    "fact p-14",
+    "fact p-16",
+    "fact p-18",
+    "fact p-20",
+    "fact p-22",
+    "fact p-24",
+    "fact p-26",
+    "fact p-28",
+    "fact p-30",
+    "fact p-32",
+    "fact p-34",
+    "fact p-36",
+    "fact p-38"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "build_context_pack person_brief": {
+   "bound": [],
+   "shown": [
+    "event own 03-13T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact c-own",
+    "fact n-01",
+    "fact n-03",
+    "fact n-05",
+    "fact n-07",
+    "fact n-09",
+    "fact n-11",
+    "fact n-13",
+    "fact n-15",
+    "fact n-17",
+    "fact n-19",
+    "fact n-21",
+    "fact n-23",
+    "fact n-25",
+    "fact n-27",
+    "fact n-29"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "build_context_pack meeting_prep": {
+   "bound": [],
+   "shown": [
+    "event own 03-13T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact c-own",
+    "fact n-21",
+    "fact n-23",
+    "fact n-25",
+    "fact n-27",
+    "fact n-29"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "context task": {
+   "bound": [
+    "message own 03-05T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "event own 03-13T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own",
+    "fact g-owner",
+    "fact p-22",
+    "fact p-24",
+    "fact p-26",
+    "fact p-28",
+    "fact p-30",
+    "fact p-32",
+    "fact p-34",
+    "fact p-36",
+    "fact p-38"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "context entity": {
+   "bound": [
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "event own 03-13T12:00",
+    "message own 03-07T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact c-own",
+    "fact n-17",
+    "fact n-19",
+    "fact n-21",
+    "fact n-23",
+    "fact n-25",
+    "fact n-27",
+    "fact n-29"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "context event": {
+   "bound": [
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "event own 03-13T12:00",
+    "message own 03-07T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact c-own",
+    "fact n-17",
+    "fact n-19",
+    "fact n-21",
+    "fact n-23",
+    "fact n-25",
+    "fact n-27",
+    "fact n-29"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "sync_memory": {
+   "bound": [],
+   "shown": [
+    "message own 03-05T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "find_documents": {
+   "bound": [],
+   "shown": [
+    "document own 01-02T00:00",
+    "document own 01-03T00:00"
+   ],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "get_document": {
+   "bound": [
+    "document own 01-02T00:00"
+   ],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "fetch_template": {
+   "bound": [
+    "document own 01-03T00:00"
+   ],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "find_paths": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "list_goals": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [
+    "fact goal 1"
+   ],
+   "goals": [
+    "goal 1"
+   ],
+   "lessons": []
+  },
+  "record_reads": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "read_record": "not_found",
+  "find_records": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "list_people": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "about person": {
+   "bound": [],
+   "shown": [
+    "event own 03-13T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact c-own",
+    "fact n-01",
+    "fact n-03",
+    "fact n-05",
+    "fact n-07",
+    "fact n-09",
+    "fact n-11",
+    "fact n-13",
+    "fact n-15",
+    "fact n-17",
+    "fact n-19",
+    "fact n-21",
+    "fact n-23",
+    "fact n-25",
+    "fact n-27",
+    "fact n-29"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "about organization": {
+   "bound": [],
+   "shown": [
+    "message own 03-07T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "about name": {
+   "bound": [],
+   "shown": [
+    "event own 03-13T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact c-own",
+    "fact n-01",
+    "fact n-03",
+    "fact n-05",
+    "fact n-07",
+    "fact n-09",
+    "fact n-11",
+    "fact n-13",
+    "fact n-15",
+    "fact n-17",
+    "fact n-19",
+    "fact n-21",
+    "fact n-23",
+    "fact n-25",
+    "fact n-27",
+    "fact n-29"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_suggestions": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  }
+ },
+ "writer": {
+  "get_self": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "event employer:example 03-11T12:00",
+    "event own 03-13T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own",
+    "fact c-work",
+    "fact g-owner",
+    "fact p-31",
+    "fact p-32",
+    "fact p-33",
+    "fact p-34",
+    "fact p-35",
+    "fact p-36",
+    "fact p-37",
+    "fact p-38",
+    "fact p-39"
+   ],
+   "goals": [
+    "goal 1"
+   ],
+   "lessons": []
+  },
+  "get_self history": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "event employer:example 03-11T12:00",
+    "event own 03-13T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own",
+    "fact c-work",
+    "fact g-owner",
+    "fact p-31",
+    "fact p-32",
+    "fact p-33",
+    "fact p-34",
+    "fact p-35",
+    "fact p-36",
+    "fact p-37",
+    "fact p-38",
+    "fact p-39"
+   ],
+   "goals": [
+    "goal 1"
+   ],
+   "lessons": []
+  },
+  "get_self work": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [
+    "goal 1"
+   ],
+   "lessons": []
+  },
+  "get_self moves": {
+   "bound": [
+    "message own 03-05T12:00"
+   ],
+   "shown": [
+    "event employer:example 03-11T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own"
+   ],
+   "goals": [
+    "goal 1"
+   ],
+   "lessons": []
+  },
+  "get_self domain": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [
+    "goal 1"
+   ],
+   "lessons": []
+  },
+  "search": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "get_entity person": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "event employer:example 03-08T10:00",
+    "event employer:example 03-11T12:00",
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact n-02",
+    "fact n-03",
+    "fact n-04",
+    "fact n-05",
+    "fact n-06",
+    "fact n-07",
+    "fact n-08",
+    "fact n-09",
+    "fact n-10",
+    "fact n-11",
+    "fact n-12",
+    "fact n-13",
+    "fact n-14",
+    "fact n-15",
+    "fact n-16",
+    "fact n-17",
+    "fact n-18",
+    "fact n-19",
+    "fact n-20",
+    "fact n-21",
+    "fact n-22",
+    "fact n-23",
+    "fact n-24",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29",
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_entity organization": {
+   "bound": [],
+   "shown": [
+    "message employer:example 02-26T12:00",
+    "message own 03-07T12:00"
+   ],
+   "factKeyFps": [
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_entity project": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "get_timeline": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "event employer:example 03-08T10:00",
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-08T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact c-own",
+    "fact n-00",
+    "fact n-01",
+    "fact n-02",
+    "fact n-03",
+    "fact n-04",
+    "fact n-05",
+    "fact n-06",
+    "fact n-07",
+    "fact n-08",
+    "fact n-09",
+    "fact n-10",
+    "fact n-11",
+    "fact n-12",
+    "fact n-13",
+    "fact n-14",
+    "fact n-15",
+    "fact n-16",
+    "fact n-17",
+    "fact n-18",
+    "fact n-19",
+    "fact n-20",
+    "fact n-21",
+    "fact n-22",
+    "fact n-23",
+    "fact n-24",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29",
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "find_messages": {
+   "bound": [],
+   "shown": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "read_message": {
+   "bound": [
+    "message own 03-05T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "read_item": {
+   "bound": [],
+   "shown": [
+    "message own 03-05T12:00"
+   ],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "find_facts type": {
+   "bound": [
+    "message own 03-05T12:00",
+    "message own 03-06T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact c-loose",
+    "fact c-own"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "find_facts role": {
+   "bound": [
+    "message employer:example 02-26T12:00"
+   ],
+   "shown": [
+    "message employer:example 02-26T12:00"
+   ],
+   "factKeyFps": [
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "find_facts entity": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-06T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact n-10",
+    "fact n-11",
+    "fact n-12",
+    "fact n-13",
+    "fact n-14",
+    "fact n-15",
+    "fact n-16",
+    "fact n-17",
+    "fact n-18",
+    "fact n-19",
+    "fact n-20",
+    "fact n-21",
+    "fact n-22",
+    "fact n-23",
+    "fact n-24",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "find_facts belief": {
+   "bound": [
+    "message own 03-05T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact c-own"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_evidence_span": {
+   "bound": [
+    "message own 03-05T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact c-own"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_commitments": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message own 03-05T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact c-own",
+    "fact c-work"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_commitments with": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message own 03-05T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact c-own",
+    "fact c-work"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_beliefs": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-06T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact n-10",
+    "fact n-11",
+    "fact n-12",
+    "fact n-13",
+    "fact n-14",
+    "fact n-15",
+    "fact n-16",
+    "fact n-17",
+    "fact n-18",
+    "fact n-19",
+    "fact n-20",
+    "fact n-21",
+    "fact n-22",
+    "fact n-23",
+    "fact n-24",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_beliefs entity": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-06T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact n-10",
+    "fact n-11",
+    "fact n-12",
+    "fact n-13",
+    "fact n-14",
+    "fact n-15",
+    "fact n-16",
+    "fact n-17",
+    "fact n-18",
+    "fact n-19",
+    "fact n-20",
+    "fact n-21",
+    "fact n-22",
+    "fact n-23",
+    "fact n-24",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_open_items": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message own 03-05T12:00"
+   ],
+   "shown": [],
+   "factKeyFps": [
+    "fact c-own",
+    "fact c-work"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_changes": {
+   "bound": [
+    "message own 03-05T12:00"
+   ],
+   "shown": [
+    "message own 03-07T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "build_context_pack agent_bootstrap": {
+   "bound": [],
+   "shown": [
+    "event employer:example 03-11T12:00",
+    "event own 03-13T12:00",
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00",
+    "record 1",
+    "record 2"
+   ],
+   "factKeyFps": [
+    "fact c-own",
+    "fact c-work",
+    "fact g-owner",
+    "fact p-21",
+    "fact p-22",
+    "fact p-23",
+    "fact p-24",
+    "fact p-25",
+    "fact p-26",
+    "fact p-27",
+    "fact p-28",
+    "fact p-29",
+    "fact p-30",
+    "fact p-31",
+    "fact p-32",
+    "fact p-33",
+    "fact p-34",
+    "fact p-35",
+    "fact p-36",
+    "fact p-37",
+    "fact p-38",
+    "fact p-39"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "build_context_pack person_brief": {
+   "bound": [],
+   "shown": [
+    "event employer:example 03-08T10:00",
+    "event employer:example 03-11T12:00",
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact c-own",
+    "fact c-work",
+    "fact n-00",
+    "fact n-01",
+    "fact n-02",
+    "fact n-03",
+    "fact n-04",
+    "fact n-05",
+    "fact n-06",
+    "fact n-07",
+    "fact n-08",
+    "fact n-09",
+    "fact n-10",
+    "fact n-11",
+    "fact n-12",
+    "fact n-13",
+    "fact n-14",
+    "fact n-15",
+    "fact n-16",
+    "fact n-17",
+    "fact n-18",
+    "fact n-19",
+    "fact n-20",
+    "fact n-21",
+    "fact n-22",
+    "fact n-23",
+    "fact n-24",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29",
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "build_context_pack meeting_prep": {
+   "bound": [],
+   "shown": [
+    "event employer:example 03-08T10:00",
+    "event own 03-13T12:00",
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-08T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own",
+    "fact c-work",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29",
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "context task": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "event employer:example 03-11T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own",
+    "fact c-work",
+    "fact g-owner",
+    "fact p-31",
+    "fact p-32",
+    "fact p-33",
+    "fact p-34",
+    "fact p-35",
+    "fact p-36",
+    "fact p-37",
+    "fact p-38",
+    "fact p-39"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "context entity": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "event employer:example 03-11T12:00",
+    "message employer:example 02-26T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact c-own",
+    "fact c-work",
+    "fact n-24",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29",
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "context event": {
+   "bound": [
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "shown": [
+    "event employer:example 03-11T12:00",
+    "message employer:example 02-26T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact c-own",
+    "fact c-work",
+    "fact n-24",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29",
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "sync_memory": {
+   "bound": [],
+   "shown": [
+    "message employer:example 02-18T12:00",
+    "message own 03-05T12:00"
+   ],
+   "factKeyFps": [
+    "fact c-own",
+    "fact c-work"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "find_documents": {
+   "bound": [],
+   "shown": [
+    "document own 01-02T00:00",
+    "document own 01-03T00:00"
+   ],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "get_document": {
+   "bound": [
+    "document own 01-02T00:00"
+   ],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "fetch_template": {
+   "bound": [
+    "document own 01-03T00:00"
+   ],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "find_paths": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "list_goals": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [
+    "fact goal 1"
+   ],
+   "goals": [
+    "goal 1"
+   ],
+   "lessons": []
+  },
+  "record_reads": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "read_record": {
+   "bound": [],
+   "shown": [
+    "record 1"
+   ],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "find_records": {
+   "bound": [],
+   "shown": [
+    "record 1",
+    "record 2"
+   ],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "list_people": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  },
+  "about person": {
+   "bound": [],
+   "shown": [
+    "event employer:example 03-08T10:00",
+    "event employer:example 03-11T12:00",
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact c-own",
+    "fact n-00",
+    "fact n-01",
+    "fact n-02",
+    "fact n-03",
+    "fact n-04",
+    "fact n-05",
+    "fact n-06",
+    "fact n-07",
+    "fact n-08",
+    "fact n-09",
+    "fact n-10",
+    "fact n-11",
+    "fact n-12",
+    "fact n-13",
+    "fact n-14",
+    "fact n-15",
+    "fact n-16",
+    "fact n-17",
+    "fact n-18",
+    "fact n-19",
+    "fact n-20",
+    "fact n-21",
+    "fact n-22",
+    "fact n-23",
+    "fact n-24",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29",
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "about organization": {
+   "bound": [],
+   "shown": [
+    "message employer:example 02-26T12:00"
+   ],
+   "factKeyFps": [
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "about name": {
+   "bound": [],
+   "shown": [
+    "event employer:example 03-08T10:00",
+    "event employer:example 03-11T12:00",
+    "message employer:example 02-18T12:00",
+    "message employer:example 02-26T12:00",
+    "message employer:example 02-27T12:00",
+    "message employer:example 02-28T12:00",
+    "message employer:example 03-01T12:00",
+    "message employer:example 03-02T12:00",
+    "message employer:example 03-03T12:00",
+    "message employer:example 03-04T12:00",
+    "message employer:example 03-09T12:00",
+    "message own 03-05T12:00",
+    "message own 03-06T12:00",
+    "message own 03-07T12:00",
+    "message own 03-08T12:00"
+   ],
+   "factKeyFps": [
+    "fact a-blake",
+    "fact c-own",
+    "fact n-00",
+    "fact n-01",
+    "fact n-02",
+    "fact n-03",
+    "fact n-04",
+    "fact n-05",
+    "fact n-06",
+    "fact n-07",
+    "fact n-08",
+    "fact n-09",
+    "fact n-10",
+    "fact n-11",
+    "fact n-12",
+    "fact n-13",
+    "fact n-14",
+    "fact n-15",
+    "fact n-16",
+    "fact n-17",
+    "fact n-18",
+    "fact n-19",
+    "fact n-20",
+    "fact n-21",
+    "fact n-22",
+    "fact n-23",
+    "fact n-24",
+    "fact n-25",
+    "fact n-26",
+    "fact n-27",
+    "fact n-28",
+    "fact n-29",
+    "fact r-blake"
+   ],
+   "goals": [],
+   "lessons": []
+  },
+  "get_suggestions": {
+   "bound": [],
+   "shown": [],
+   "factKeyFps": [],
+   "goals": [],
+   "lessons": []
+  }
+ }
+}

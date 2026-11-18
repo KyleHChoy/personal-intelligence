@@ -1,0 +1,8 @@
+#!/bin/sh
+# agent-run [command]: a session as the agent user, the user Claude Code runs as. For root.
+# sudo starts it on a pseudo-terminal of its own and with an environment of sudo's own making,
+# so nothing in the caller's environment reaches agent, and nothing agent writes to its
+# terminal reaches the caller's. With no command it is a shell: `agent-run claude`.
+[ "$(id -u)" -eq 0 ] || { echo 'only root runs this' >&2; exit 1; }
+cd / || exit 1
+exec /usr/bin/sudo -u agent -H /usr/local/lib/pi/agent-session "$@"

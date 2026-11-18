@@ -1,0 +1,26 @@
+{
+  "version": 2,
+  "namedPerLabelPerDay": 20,
+  "contactOrgsPerLabelPerDay": 1000,
+  "acquaintanceWeight": 0.5,
+  "introOfferWeight": { "offered": 1, "suggested": 0.5 },
+  "introOfferDays": 365,
+  "reportedWeight": 0.3,
+  "observedWeight": { "shared_thread": 0.2, "met_together": 0.2, "same_domain": 0.1 },
+  "maxHops": 4,
+  "namedMeetingHours": 36,
+  "prepPerAttendee": 5,
+  "mapNamedPerNode": 5,
+  "explorePerDay": 2,
+  "goalTargetCardsOpen": 5,
+  "exploreRestDays": 30,
+  "value": {
+    "goalTarget": 100,
+    "goalPath": 50,
+    "meetingSoon": 40,
+    "perNamer": 5,
+    "base": 1,
+    "tierFactor": { "inner": 3, "close": 2, "regular": 1.5 },
+    "recencyHalfLifeDays": 90
+  }
+}

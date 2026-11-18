@@ -1,0 +1,457 @@
+#!/bin/sh
+# The container's entry. It starts as root, prepares the volume, writes the secrets it was
+# given in its environment to files only their one user can read (pi's, the agent API's pimcp and
+# pihttp, the reasoner's, the send user's and the others'), and then becomes the sync timer, as
+# pi, with an empty environment. So no process it starts holds a secret in its environment,
+# its own included, and no process of the box stays root.
+#
+# Its lines on stderr are fixed: each one JSON line, with its event, its time
+# (`at`), its level and its code, and for a variable its name as the field `name`. Never a value.
+set -eu
+umask 077
+PATH=/usr/local/bin:/usr/bin:/bin
+cd /
+
+# say CODE [LEVEL] [NAME]: one fixed line.
+say() {
+  if [ -n "${3:-}" ]; then
+    printf '{"event":"box_start","at":"%s","level":"%s","code":"%s","name":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${2:-info}" "$1" "$3" >&2
+  else
+    printf '{"event":"box_start","at":"%s","level":"%s","code":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${2:-info}" "$1" >&2
+  fi
+}
+
+[ "$(id -u)" -eq 0 ] || { say not_root error; exit 1; }
+
+# The host's pre-deploy step (lib/predeploy) runs this image's entry with the step as its argument,
+# in a container of its own and without the volume: it runs that step and starts nothing of the box.
+case ${1:-} in
+  predeploy | /usr/local/lib/pi/predeploy) exec /usr/local/lib/pi/predeploy ;;
+esac
+
+# Without its volume the box does not start: the key file would be written to the container's
+# own disk and be gone at the next deploy, with every sealed row then unreadable.
+mkdir -p /data
+mountpoint -q /data || { say no_volume error; exit 1; }
+
+# The volume mounts owned by root. Each user gets one directory on it. Root touches only the top
+# of each, which sits in root's own /data, and never anything inside one, so nothing root does
+# here follows a path pi, pimcp, pihttp or agent controls. The tokens directory is inside pimcp's,
+# so it is made as pimcp: a symlink pimcp planted there is then followed with pimcp's rights and no
+# more. pihttp's directory holds no token: `pi http` takes each request's token from the request.
+chown root:root /data
+chmod 755 /data
+# /data/pi is pi's, with group piweb and only search for it (0710): pitail, piweb's one other
+# member, reaches the page's socket in it by name, and lists and reads nothing there, since pi's
+# files are 0600, the page's socket aside.
+install -d -m 710 -o pi -g piweb /data/pi
+install -d -m 700 -o agent -g agent /data/agent
+install -d -m 700 -o pinotify -g pinotify /data/pinotify
+install -d -m 700 -o pitail -g pitail /data/pitail
+install -d -m 700 -o pimcp -g pimcp /data/pimcp
+install -d -m 700 -o pihttp -g pihttp /data/pihttp
+as_pi() { /usr/bin/env -i PATH="$PATH" /usr/bin/setpriv --reuid=pi --regid=pi --init-groups "$@"; }
+as_pimcp() { /usr/bin/env -i PATH="$PATH" /usr/bin/setpriv --reuid=pimcp --regid=pimcp --init-groups "$@"; }
+as_pimcp install -d -m 700 /data/pimcp/tokens 2> /dev/null || say tokens_refused warn
+# pi-mcp's client tokens were pi's, in /data/pi/tokens, before the agent API had a user of its
+# own. Each one left there is handed to pimcp once, read as pi and written as pimcp, never by
+# root, and removed from pi's directory only once pimcp holds it; a token pimcp already holds is
+# the newer and is kept. So no token stays readable by pi.
+for who in agent root reasoner; do
+  as_pi test -f "/data/pi/tokens/$who" 2> /dev/null || continue
+  if as_pimcp test -e "/data/pimcp/tokens/$who" 2> /dev/null \
+    || as_pi cat "/data/pi/tokens/$who" 2> /dev/null | as_pimcp /bin/sh -ec 'umask 077; cat > "$1.new"; [ -s "$1.new" ]; mv -f "$1.new" "$1"' entrypoint "/data/pimcp/tokens/$who" 2> /dev/null; then
+    as_pi rm -f "/data/pi/tokens/$who" 2> /dev/null || say token_move_failed warn
+  else
+    say token_move_failed warn
+  fi
+done
+as_pi rmdir /data/pi/tokens 2> /dev/null || :
+
+# What the timer reads of the box's long-running processes, in a
+# directory root owns that every user reads: each supervised process's count of fast exits in a
+# row (lib/supervise --state) and the time the page's node joined the tailnet (lib/tail-serve). Each
+# file is made here, empty, the one writer's own, mode 0644: the writer never makes a file or
+# follows a link in a directory it cannot write. Numbers only.
+install -d -m 755 -o root -g root /run/pistate
+for file in http:pihttp wake:pi web:pi notify:pinotify tailscaled:pitail; do
+  install -m 644 -o "${file#*:}" -g "${file#*:}" /dev/null "/run/pistate/${file%%:*}.restarts"
+done
+install -m 644 -o pitail -g pitail /dev/null /run/pistate/tail.joined_at
+# Whether the database has applied every migration this image holds: `unknown` until
+# lib/migrate-start has asked, then `current` or `behind`; `pi-migrate` writes `current` when it
+# succeeds. Root's alone to write; `pi http` reads it for /healthz.
+printf 'unknown\n' > /run/pistate/schema
+chmod 644 /run/pistate/schema
+
+# The key endpoint's override, PI_OPENROUTER_KEY_URL, is the smoke test's alone, and is where the
+# model keys are sent: any user of the box, agent's included, can listen on loopback and be sent
+# them. So a start that holds it says so, in one fixed line before the files are written, and
+# the host's logs show it. Production never sets it.
+[ -z "${PI_OPENROUTER_KEY_URL:-}" ] || say key_url_override warn
+
+# A required variable that is not set is named, `missing_env` at level error, and its command later
+# refuses to start. An optional one, whose absence only leaves its part of the box off, is named
+# `optional_unset` at level info: the send role's URL (PI_DATABASE_URL_PROXY, the send proxy off
+# until the owner sets it), and below the restricted role's and the notice sender's.
+#
+# /run/pi is root's, with group pi: pi cannot write the directory, so it can never add, remove
+# or replace an entry there, or plant a symlink that a root writer here or in pi-migrate would
+# follow. Each file below, and bootstrap.env later, is written by root into this directory and
+# then given to its role's user, so pi owns its own files and can rewrite what they hold.
+install -d -m 750 -o root -g pi /run/pi
+# mcp.env is pimcp's, in /run/pimcp, and http.env pihttp's, in /run/pihttp: a pi file of either
+# name is an older image's.
+rm -f /run/pi/bootstrap.env /run/pi/extract.env /run/pi/mcp.env /run/pi/http.env
+for name in PI_DATABASE_URL_ADMIN PI_DATABASE_URL_WRITER PI_DATABASE_URL_READER PI_DATABASE_URL_PIPELINE PI_DATABASE_URL_WORK PI_GOOGLE_CLIENT_ID PI_GOOGLE_CLIENT_SECRET PI_REASONER_MODEL PI_REASONER_MODEL_KEY; do
+  eval "[ -n \"\${$name:-}\" ]" || say missing_env error "$name"
+done
+[ -n "${PI_DATABASE_URL_PROXY:-}" ] || say optional_unset info PI_DATABASE_URL_PROXY
+# The dead-man check's ping URL, which the owner makes outside the box and sets on the service: with
+# none, nothing is sent. Only an https URL is taken; anything else is named and left out.
+case ${PI_HEARTBEAT_URL:-} in
+  '') say optional_unset info PI_HEARTBEAT_URL ;;
+  https://*) ;;
+  *) say bad_env error PI_HEARTBEAT_URL; PI_HEARTBEAT_URL= ;;
+esac
+key=PI_KEY_FILE=/data/pi/keys.json
+# A value with a line break would add lines of its own to the file, another role's URL among
+# them, which pi-migrate would then pass on. Such a variable is left out, and named.
+nl='
+'
+# A send credential goes to the send user's one file and to no other: a line that names one, aimed
+# at any other file, is left out, and named.
+send_file=/run/pisend/send.env
+# The work-notice sender's URL and its key file's path go to its one file and to no
+# other, as a send credential does.
+notify_file=/run/pinotify/notify.env
+# The database's CA: when the owner has put it on the volume, in root's own /data/pi-root/db-ca.pem,
+# root copies it where every role can read it and names it in every database URL written below as
+# `sslrootcert`, so each connection to the database checks the server's certificate in full (store
+# db.ts, `withTls`). A URL that names its own sslmode or sslrootcert is left as it is. With none,
+# those connections are encrypted and check no certificate, which the box raises as a
+# `tls_unverified` card.
+ca=
+rm -rf /run/pi-ca
+if [ -f /data/pi-root/db-ca.pem ]; then
+  install -d -m 755 -o root -g root /run/pi-ca
+  install -m 644 -o root -g root /data/pi-root/db-ca.pem /run/pi-ca/root.crt
+  ca=/run/pi-ca/root.crt
+fi
+# write FILE OWNER LINE...: the file new, written by root, then given to its one reader. OWNER is
+# a user, who then owns it (0600), or root:GROUP, whose group reads it and cannot change it (0640):
+# the agent API's files, so a process that answers the internet cannot rewrite what pi-migrate,
+# as root, later reads.
+write() {
+  file=$1
+  owner=$2
+  shift 2
+  : > "$file"
+  for line in "$@"; do
+    if [ -n "$ca" ]; then
+      case $line in
+        *sslmode=* | *sslrootcert=*) ;;
+        PI_DATABASE_URL_*=*\?*) line="$line&sslrootcert=$ca" ;;
+        PI_DATABASE_URL_*=?*) line="$line?sslrootcert=$ca" ;;
+      esac
+    fi
+    case $line in
+      *"$nl"*) say bad_env error "${line%%=*}" ;;
+      PI_DATABASE_URL_PROXY=* | PI_SEND_*)
+        if [ "$file" = "$send_file" ]; then printf '%s\n' "$line" >> "$file"; else say bad_env error "${line%%=*}"; fi ;;
+      PI_DATABASE_URL_NOTIFY=* | PI_WEBHOOK_SECRETS=*)
+        if [ "$file" = "$notify_file" ]; then printf '%s\n' "$line" >> "$file"; else say bad_env error "${line%%=*}"; fi ;;
+      *) printf '%s\n' "$line" >> "$file" ;;
+    esac
+  done
+  case $owner in
+    *:*) chown "$owner" "$file"; chmod 640 "$file" ;;
+    *) chown "$owner:$owner" "$file" ;;
+  esac
+}
+put() {
+  name=$1
+  shift
+  write "/run/pi/$name.env" pi "$@"
+}
+# PI_RECORD_ENABLED is a deployment setting `pia clients add` and `set-tools` read (pi README): it has to reach admin.env, or a
+# registration that lists record is refused with record_disabled. Lens: the capture ceiling and the mirror's two timings, each only when
+# the service sets it, to mcp.env and http.env alike, since `pi mcp` and `pi http` open the agent API the same way; the ceiling to
+# admin.env too, so `pia status` compares the database with the ceiling `pi http` applies. And Drive's ceiling, to admin.env and sync.env,
+# so `pia status`, the page and sync read one number; the identity sweep's call limit; and the pseudonymise switch, which the sweep reads
+# too. Not secrets; a value of the wrong form makes its command exit 2 with `usage`.
+set -- "PI_DATABASE_URL_ADMIN=${PI_DATABASE_URL_ADMIN:-}" "PI_GOOGLE_CLIENT_ID=${PI_GOOGLE_CLIENT_ID:-}" "PI_GOOGLE_CLIENT_SECRET=${PI_GOOGLE_CLIENT_SECRET:-}" "PI_RECORD_ENABLED=${PI_RECORD_ENABLED:-}" "$key"
+for name in PI_CAPTURE_STORAGE_CEILING_BYTES PI_DRIVE_STORAGE_CEILING_BYTES PI_IDENTITY_MAX_CALLS PI_PSEUDONYMISE; do
+  eval "[ -z \"\${$name:-}\" ] || set -- \"\$@\" \"$name=\$$name\""
+done
+# The owner's page: the node's ts.net name and the owner's Tailscale login, set on the
+# service together, so `pi web serve` accepts that Host and `pia web link` prints a link to it;
+# and the client bundle the image built. Names and a path, not secrets.
+[ -z "${PI_WEB_TS_HOST:-}" ] || set -- "$@" "PI_WEB_TS_HOST=$PI_WEB_TS_HOST"
+[ -z "${PI_WEB_TS_LOGIN:-}" ] || set -- "$@" "PI_WEB_TS_LOGIN=$PI_WEB_TS_LOGIN"
+[ ! -f /opt/intelligence/apps/web/dist/manifest.json ] || set -- "$@" "PI_WEB_CLIENT_DIR=/opt/intelligence/apps/web/dist"
+# The standing end-to-end check, off until the service sets PI_CANARY=1: where it reaches the agent
+# API from inside the box, and the file `pia canary setup` keeps its tokens in. A path and a local
+# address, not secrets; lib/sync-timer starts the check only when these lines are here.
+canary_lines=
+if [ "${PI_CANARY:-}" = 1 ]; then
+  canary_lines=yes
+  set -- "$@" "PI_CANARY_API_URL=http://127.0.0.1:${PORT:-8080}" "PI_CANARY_TOKENS=/data/pi/canary-tokens.json"
+  # The extraction lanes' switches, so `pi canary check` reports a lane the owner has off.
+  set -- "$@" "PI_EXTRACT_DOCUMENTS=${PI_EXTRACT_DOCUMENTS:-}" "PI_EXTRACT_MEETINGS=${PI_EXTRACT_MEETINGS:-}" "PI_EXTRACT_MOMENTS=${PI_EXTRACT_MOMENTS:-}"
+fi
+put admin "$@"
+# The box's public origin, a URL and not a secret, so the drain knows the box's own host, which the
+# deny-list's default never admits; empty, it admits nothing by default.
+set -- "PI_DATABASE_URL_WRITER=${PI_DATABASE_URL_WRITER:-}" "$key" "PI_HTTP_BASE_URL=${PI_HTTP_BASE_URL:-}"
+# Drive's two limits, each only when the service sets it.
+for name in PI_DRIVE_STORAGE_CEILING_BYTES PI_DRIVE_PAGES_PER_RUN; do
+  eval "[ -z \"\${$name:-}\" ] || set -- \"\$@\" \"$name=\$$name\""
+done
+[ -z "$canary_lines" ] || set -- "$@" "PI_CANARY_API_URL=http://127.0.0.1:${PORT:-8080}" "PI_CANARY_TOKENS=/data/pi/canary-tokens.json"
+put sync "$@"
+# The dead-man check's URL, a file of its own that only the timer reads (lib/sync-timer,
+# `heartbeat`), so no command's environment holds it: whoever has it can ping the check.
+# Off unless the owner sets it to 1: a waiting box health card also reaches the check (`heartbeat`).
+case ${PI_HEARTBEAT_ON_CARD:-} in
+  '' | 1) ;;
+  *) say bad_env error PI_HEARTBEAT_ON_CARD; PI_HEARTBEAT_ON_CARD= ;;
+esac
+put heartbeat "PI_HEARTBEAT_URL=${PI_HEARTBEAT_URL:-}" "PI_HEARTBEAT_ON_CARD=${PI_HEARTBEAT_ON_CARD:-}"
+lens_names='PI_CAPTURE_STORAGE_CEILING_BYTES PI_MIRROR_PASS_SECONDS PI_MIRROR_REBUILD_HOURS'
+# The agent API's two files: mcp.env, `pi mcp`'s, in /run/pimcp, which is root's with group pimcp,
+# and http.env, `pi http`'s, in /run/pihttp, which is root's with group pihttp, as /run/pi is with
+# group pi. Unlike pi's, each file is root's too, with its user's group, mode 0640: the user reads
+# it and can change neither it nor the directory, so neither process can add a line pi-migrate
+# would take. Each holds the reader role's URL and its own user's narrowed key file, and nothing of
+# pi's; neither user reads the other's.
+install -d -m 750 -o root -g pimcp /run/pimcp
+install -d -m 750 -o root -g pihttp /run/pihttp
+agent_key=PI_KEY_FILE=/data/pimcp/keys.json
+set -- "PI_DATABASE_URL_READER=${PI_DATABASE_URL_READER:-}" "$agent_key"
+for name in $lens_names; do
+  eval "[ -z \"\${$name:-}\" ] || set -- \"\$@\" \"$name=\$$name\""
+done
+write /run/pimcp/mcp.env root:pimcp "$@"
+# Where the tick keeps the warning counts it last logged, and the switch for query-time's shadow
+# trigger work, written only when the service sets it (off until query-time's build turns it on).
+set -- "PI_DATABASE_URL_WORK=${PI_DATABASE_URL_WORK:-}" "PI_ERASURE_JOURNAL=/data/pi/keys.json.erasures" "PI_WORK_STATE=/data/pi/work-state.json"
+[ -z "${PI_WORK_SHADOW_TRIGGERS:-}" ] || set -- "$@" "PI_WORK_SHADOW_TRIGGERS=$PI_WORK_SHADOW_TRIGGERS"
+put work "$@"
+# The journal itself is not made here. `pia erase replay` makes it, empty, on a store with no
+# erasure: for the tick a missing journal is journal_refused, so a lost one never reads as "no
+# erasure was ever made".
+
+# The reasoner's one file: its model and its key, its key's spend ceiling and its reasoning effort
+# when the service sets them, and the key endpoint's override when the smoke test does, and nothing
+# else. /run/reasoner is root's, with group reasoner, as /run/pi is with group pi: the one process
+# of the box that runs a model loop reads its file and can never plant a link a root writer here
+# would follow. pi reads nothing in it, and agent cannot even list it.
+install -d -m 750 -o root -g reasoner /run/reasoner
+set -- "PI_REASONER_MODEL=${PI_REASONER_MODEL:-}" "PI_REASONER_MODEL_KEY=${PI_REASONER_MODEL_KEY:-}"
+# And the two web switches when the service sets them.
+for name in PI_REASONER_KEY_CAP_USD PI_REASONER_REASONING_EFFORT PI_REASONER_WEB_SEARCH PI_REASONER_WEB_FETCH PI_OPENROUTER_KEY_URL; do
+  eval "[ -z \"\${$name:-}\" ] || set -- \"\$@\" \"$name=\$$name\""
+done
+write /run/reasoner/reasoner.env reasoner "$@"
+# The outcome test's one file, and only when the service turns it on: off, no file holds the key and
+# the timer starts nothing. The judge's model has no default: it must be another model, and code
+# refuses the same one.
+install -d -m 750 -o root -g tester /run/tester
+case ${PI_OUTCOME_TEST:-} in
+  '') ;;
+  1)
+    set -- "PI_OUTCOME_TEST=1" "PI_OUTCOME_TEST_MODEL=${PI_OUTCOME_TEST_MODEL:-${PI_REASONER_MODEL:-}}" "PI_OUTCOME_TEST_JUDGE_MODEL=${PI_OUTCOME_TEST_JUDGE_MODEL:-}" "PI_OUTCOME_TEST_MODEL_KEY=${PI_OUTCOME_TEST_MODEL_KEY:-${PI_REASONER_MODEL_KEY:-}}"
+    for name in PI_OUTCOME_TEST_REASONING_EFFORT PI_OUTCOME_TEST_RUN_USD PI_REASONER_KEY_CAP_USD PI_OPENROUTER_KEY_URL; do
+      eval "[ -z \"\${$name:-}\" ] || set -- \"\$@\" \"$name=\$$name\""
+    done
+    write /run/tester/tester.env tester "$@"
+    put tester-on "PI_OUTCOME_TEST=1"
+    ;;
+  *) say bad_env error PI_OUTCOME_TEST ;;
+esac
+# The send user's one file: the send role's URL and the send client, read by pisend alone, in a
+# directory root owns with group pisend, as /run/reasoner is. No other file holds any of the three,
+# and only pi-send's loader reads it. The copies of the key file and the journal pi-send makes live
+# here only while a send command runs; a container's /run is not memory unless the host makes it so,
+# so any copy a killed run left is removed at each start.
+install -d -m 750 -o root -g pisend /run/pisend
+rm -f /run/pisend/keys.json /run/pisend/keys.json.erasures
+write "$send_file" pisend "PI_DATABASE_URL_PROXY=${PI_DATABASE_URL_PROXY:-}" "PI_SEND_GOOGLE_CLIENT_ID=${PI_SEND_GOOGLE_CLIENT_ID:-}" "PI_SEND_GOOGLE_CLIENT_SECRET=${PI_SEND_GOOGLE_CLIENT_SECRET:-}"
+# extract.env only when the pipeline URL is set, and of the model, budget and spend-ceiling lines only those the service sets, with the key endpoint's
+# override as the reasoner has it, and Lens's two lane switches, each off until the service sets it to `1`; and extraction's Anthropic key and effort, and
+# the moment lane's model and effort, the judge model, the second-degree switch, the fact-kind lanes, the repair and re-ask switches and the pseudonymise
+# switch, each only when set. This is the only file that holds that key. With no model `pi extract` refuses to start, so a file written before the owner
+# chooses one starts nothing.
+if [ -n "${PI_DATABASE_URL_PIPELINE:-}" ]; then
+  set -- "PI_DATABASE_URL_PIPELINE=$PI_DATABASE_URL_PIPELINE" "$key"
+  for name in PI_DREAM_MAX_CALLS PI_RECALL_AUDIT PI_JUDGE_GAP_DEFAULTS PI_EXTRACT_MODEL PI_EXTRACT_RUN_USD PI_EXTRACT_DAY_USD PI_EXTRACT_MAX_CALLS PI_EXTRACT_COMPARTMENTS PI_DECIDE_MODEL PI_DECIDE_ALLOW_RETAINED PI_EXTRACT_KEY_CAP_USD PI_OPENROUTER_KEY_URL PI_EXTRACT_DOCUMENTS PI_EXTRACT_DOCUMENT_DAYS PI_EXTRACT_OWN_LINES PI_EXTRACT_OWN_LINES_DAY_USD PI_EXTRACT_MEETINGS PI_EXTRACT_MOMENTS PI_EXTRACT_MOMENTS_MODE PI_EXTRACT_TIME PI_EXTRACT_ANTHROPIC_KEY PI_EXTRACT_EFFORT PI_EXTRACT_MOMENT_MODEL PI_EXTRACT_MOMENT_EFFORT PI_JUDGE_MODEL PI_EXTRACT_SECOND_DEGREE PI_EXTRACT_FACT_KINDS PI_EXTRACT_REPAIR PI_EXTRACT_REASK PI_PSEUDONYMISE; do
+    eval "[ -z \"\${$name:-}\" ] || set -- \"\$@\" \"$name=\$$name\""
+  done
+  put extract "$@"
+fi
+
+# The restricted reader's role: its URL in a file of its own, in a directory root owns and only
+# pirestricted reads, as /run/reasoner is the reasoner's. pi reads nothing in it. pi-migrate copies
+# the URL into bootstrap.env, which `pi db migrate` reads as pi for the migration alone, to set the
+# role's password. The password is the owner's to set, so the variable is optional: with none it is
+# named, the start goes on, and no file is written. The role then has no password and no one can log
+# in as it, and pi-migrate says `restricted password: skipped`.
+install -d -m 750 -o root -g pirestricted /run/pirestricted
+rm -f /run/pirestricted/restricted.env
+if [ -n "${PI_DATABASE_URL_RESTRICTED:-}" ]; then
+  write /run/pirestricted/restricted.env pirestricted "PI_DATABASE_URL_RESTRICTED=$PI_DATABASE_URL_RESTRICTED"
+else
+  say optional_unset info PI_DATABASE_URL_RESTRICTED
+fi
+
+# The work-notice sender's file: its URL and
+# the path of the webhook keys, read by pinotify alone, in a directory root owns with group
+# pinotify, as /run/pisend is. pi, agent and the reasoner read nothing in it. The URL is the
+# owner's to set, so, as the restricted one, with none it is named, the start goes on, and no file
+# is written: the sender's supervisor then starts nothing, and pi-migrate says
+# `notify password: skipped`.
+install -d -m 750 -o root -g pinotify /run/pinotify
+rm -f "$notify_file"
+# A URL with a line break is dropped and named, as write would, and writes no file either.
+case ${PI_DATABASE_URL_NOTIFY:-} in
+  '') say optional_unset info PI_DATABASE_URL_NOTIFY ;;
+  *"$nl"*) say bad_env error PI_DATABASE_URL_NOTIFY ;;
+  *) write "$notify_file" pinotify "PI_DATABASE_URL_NOTIFY=$PI_DATABASE_URL_NOTIFY" "PI_WEBHOOK_SECRETS=/data/pinotify/webhooks.json" ;;
+esac
+
+# The server the two superuser scripts connect to, as host:port, from the admin URL the service
+# set. It goes in a directory only root can read or write: pi owns admin.env and can rewrite
+# what it holds, though not the directory it is in, and a host taken from there would let a
+# compromised pi name a server of its own and be sent the superuser's password. A URL with a line break gives no server, as it gives no admin.env line.
+install -d -m 700 -o root -g root /run/pi-root
+case ${PI_DATABASE_URL_ADMIN:-} in
+  *"$nl"*) hostport= adminquery= ;;
+  *)
+    hostport=$(printf '%s\n' "${PI_DATABASE_URL_ADMIN:-}" | sed -n 's|^postgres[a-z]*://[^@]*@\([^/?]*\).*|\1|p')
+    # The URL's query, for its sslmode and sslrootcert, which the superuser scripts connect with too.
+    adminquery=$(printf '%s\n' "${PI_DATABASE_URL_ADMIN:-}" | sed -n 's|^[^?#]*?\([^#]*\).*|\1|p')
+    ;;
+esac
+printf '%s\n' "$hostport" > /run/pi-root/admin-host
+printf '%s\n' "$adminquery" > /run/pi-root/admin-query
+
+# The box's own migration (lib/migrate-start), only where the owner turned it on: with no
+# /data/pi-root/migrate.env a migration waits for the owner's `pi-migrate` as before, and when one
+# is pending this step takes the read hold and the sync hold and makes /data/migrate-wait, which
+# that `pi-migrate` ends. Here, once the files it reads are written and before anything below reads
+# or writes the database, so no process of this start meets a schema older than its code. It runs
+# from an empty environment, as root; it never stops the start, and when it fails it leaves the
+# read hold and the sync hold on.
+/usr/bin/env -i PATH="$PATH" /usr/local/lib/pi/migrate-start < /dev/null || :
+
+# So it has a file of its own, read by nothing else, and is in no other file. The import runs once
+# here and, while that has failed, at each tick of the timer until one succeeds; then the file is
+# removed here, or emptied by the timer. The same value already stored writes nothing. Before the
+# first migration it fails, which never stops the start. Its own lines are not kept, since root
+# writes nothing inside pi's directory: the start writes one fixed line of its own,
+# `model_key_replaced` when the import logged that it replaced a different stored key, else
+# `model_key_imported` or `model_key_import_failed`. Nothing the import wrote is printed. The
+# timer's runs of it log to sync.log.
+rm -f /run/pi/model-key.env
+if [ -n "${PI_OPENROUTER_KEY:-}" ]; then
+  put model-key "PI_DATABASE_URL_ADMIN=${PI_DATABASE_URL_ADMIN:-}" "PI_OPENROUTER_KEY=${PI_OPENROUTER_KEY}" "$key"
+  if lines=$(/usr/bin/env -i PATH="$PATH" /usr/bin/setpriv --reuid=pi --regid=pi --init-groups /usr/local/lib/pi/run model-key models import-key 2>&1 > /dev/null); then
+    case $lines in
+      *'"code":"model_key_replaced"'*) say model_key_replaced ;;
+      *) say model_key_imported ;;
+    esac
+    rm -f /run/pi/model-key.env
+  else
+    say model_key_import_failed warn
+  fi
+fi
+
+# The agent API's key files and journal copies, made as pimcp and pihttp from what pi hands them
+# (lib/agent-keys), now and after every owner command. A start whose database is not yet reachable cannot list the
+# clients, so it tries again in the background, ten seconds apart, and starts no try once five
+# minutes have passed; each try is bounded by agent-keys' own limits, so the loop ends within a
+# few minutes more at worst, and is gone. Until one try succeeds `pi mcp` and `pi http` refuse to
+# start (key_file_refused), and a copy made at an earlier start is kept meanwhile; on a fresh box
+# whose first migration came later, the owner's first pia command makes the copies. It runs from
+# an empty environment, so this root process holds none of the service's variables while it
+# waits; its one line, when every try failed, is the start's own fixed line.
+/usr/bin/env -i PATH="$PATH" /bin/sh -c '
+  began=$(date +%s)
+  while :; do
+    /usr/local/lib/pi/agent-keys 2> /dev/null && exit 0
+    [ $(( $(date +%s) - began )) -lt 290 ] || break
+    sleep 10
+  done
+  printf "{\"event\":\"box_start\",\"at\":\"%s\",\"level\":\"warn\",\"code\":\"agent_keys_failed\"}\n" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" >&2
+  exit 1
+' < /dev/null > /dev/null &
+
+# The agent API over HTTPS, only when the owner has configured it: PI_HTTP_BASE_URL, the service's
+# public https origin, which also turns OAuth on, or PI_HTTP_ENABLED=1 for the endpoint with bearer
+# tokens alone. Neither set, `pi http` does not start and the box listens on no port; the start says
+# so in one fixed line. Its file holds the reader role's URL, pihttp's own key copy
+# (lib/agent-keys), the port the host gives in PORT, the read hold's path, which it answers
+# unavailable beside, and PI_HTTP_TRUST_PROXY when the service sets it to 1, the owner's word that
+# the host's proxy adds the caller's address to X-Forwarded-For. Lens's three, as mcp.env has them.
+# No PI_HTTP_HOST: unset, `pi http` listens on every interface, which the host's proxy needs to
+# reach it. Started as pihttp, which reads none of pimcp's files, so no box client's token and no
+# key only the reasoner needs; in the background, with an empty environment; it is the timer's child
+# once the exec below runs.
+#
+# PI_HTTP_TRUST_PROXY is `1` or unset; any other value is named, bad_env at level error, and left
+# out, so `pi http` starts without it rather than exiting with `usage` at every restart. With the
+# endpoint on and no trusted proxy, the start says so, http_trust_proxy_unset at level warn: behind
+# a proxy every caller then has the proxy's address, and each limit by address is one limit for
+# all of them.
+# http.env was pimcp's, in /run/pimcp, in an older image: it is pihttp's now.
+rm -f /run/pimcp/http.env /run/pihttp/http.env
+case ${PI_HTTP_ENABLED:-} in '' | 1) ;; *) say bad_env error PI_HTTP_ENABLED ;; esac
+trust_proxy=
+case ${PI_HTTP_TRUST_PROXY:-} in
+  '') ;;
+  1) trust_proxy=1 ;;
+  *) say bad_env error PI_HTTP_TRUST_PROXY ;;
+esac
+if [ -n "${PI_HTTP_BASE_URL:-}" ] || [ "${PI_HTTP_ENABLED:-}" = 1 ]; then
+  set -- "PI_DATABASE_URL_READER=${PI_DATABASE_URL_READER:-}" "PI_KEY_FILE=/data/pihttp/keys.json" "PI_HTTP_PORT=${PORT:-8080}" "PI_READ_HOLD=/data/read-hold" "PI_HTTP_BASE_URL=${PI_HTTP_BASE_URL:-}"
+  if [ -n "$trust_proxy" ]; then set -- "$@" "PI_HTTP_TRUST_PROXY=1"; else say http_trust_proxy_unset warn; fi
+  for name in $lens_names; do
+    eval "[ -z \"\${$name:-}\" ] || set -- \"\$@\" \"$name=\$$name\""
+  done
+  write /run/pihttp/http.env root:pihttp "$@"
+  /usr/bin/env -i PATH="$PATH" /usr/bin/setpriv --reuid=pihttp --regid=pihttp --init-groups /usr/local/lib/pi/http-serve "${PORT:-8080}" < /dev/null > /dev/null 2>&1 &
+else
+  say http_off info
+fi
+
+# The proposal wake's listener, when extract.env was written: as pi, in the
+# background, with an empty environment, as the agent API is; the timer's child once the exec
+# below runs. It runs lib/wake-run after each burst of agent proposals and owner answers, under
+# the timer's gates; the timer stays the fallback.
+if [ -e /run/pi/extract.env ]; then
+  /usr/bin/env -i PATH="$PATH" /usr/bin/setpriv --reuid=pi --regid=pi --init-groups /usr/local/lib/pi/wake-serve < /dev/null > /dev/null 2>&1 &
+fi
+
+# The work-notice sender's supervisor, when notify.env was written: as pinotify, in
+# the background, with an empty environment, as the proposal wake's is as pi; the timer's child once
+# the exec below runs.
+if [ -e "$notify_file" ]; then
+  /usr/bin/env -i PATH="$PATH" /usr/bin/setpriv --reuid=pinotify --regid=pinotify --init-groups /usr/local/lib/pi/notify-serve < /dev/null > /dev/null 2>&1 &
+fi
+
+# The owner's page: `pi web serve`, as pi with piweb its primary group, so the
+# page's socket is made in that group; in the background, with an empty environment, as the agent
+# API is. And Tailscale, which serves that socket on the node's ts.net name: as pitail, its local
+# API socket in /run/pitail, which is pitail's alone (0700). Its fixed lines, the login link among
+# them, reach the container's output, so its stderr is kept. Each is the timer's child once the
+# exec below runs.
+/usr/bin/env -i PATH="$PATH" /usr/bin/setpriv --reuid=pi --regid=piweb --init-groups /usr/local/lib/pi/web-serve < /dev/null > /dev/null 2>&1 &
+install -d -m 700 -o pitail -g pitail /run/pitail
+/usr/bin/env -i PATH="$PATH" /usr/bin/setpriv --reuid=pitail --regid=pitail --init-groups /usr/local/lib/pi/tail-serve < /dev/null > /dev/null &
+# Serve on root's word, once the node has joined, then gone (tail-config).
+/usr/bin/env -i PATH="$PATH" /usr/local/lib/pi/tail-config < /dev/null > /dev/null &
+
+# Become the timer: pi, and an environment that holds the path and nothing else.
+say ready
+exec /usr/bin/env -i PATH="$PATH" /usr/bin/setpriv --reuid=pi --regid=pi --init-groups /usr/local/lib/pi/sync-timer

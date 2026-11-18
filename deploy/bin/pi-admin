@@ -1,0 +1,113 @@
+#!/bin/bash
+# Owner commands: `pi` as the pi user, with admin.env and nothing else. For the owner's own
+# session, which is root.
+#
+# One secret step, as root, for three commands. The
+# webhook keys are in /data/pinotify/webhooks.json, which pinotify alone reads and pi never does, so
+# the step writes the file as pinotify, through the image's own code, which writes a new file, mode
+# 0600, in the same folder and renames it over the old one:
+#
+#   pia clients webhook set NAME URL   reads the client's key from the terminal with echo off,
+#                                      never from an argument or a variable, so it is in no shell
+#                                      history, process list or environment, and refuses, running
+#                                      nothing, one that is not 16 to 512 visible ASCII characters;
+#                                      with none entered it makes one. Then runs the command, and on
+#                                      its success stores the key under the client id it printed,
+#                                      and prints a key it made once, to the terminal only. A key
+#                                      the owner entered is never printed.
+#   pia clients webhook rm NAME        on the command's success, removes the client's key
+#   pia clients revoke NAME            the same, the id taken from `clients list` first
+#
+# On a command's failure it writes nothing and prints nothing of its own. It never runs with
+# tracing and never logs a key. Every other command is `pi` as before.
+#
+# After every other command, when root runs it, lib/agent-keys brings the agent API's narrowed
+# key file and its copy of the erasure journal's mark up to date, so a client added, a compartment
+# cleared, a key added or an erasure made reaches `pi mcp` and `pi http` at once. It never changes
+# the command's exit status or its output. The timer, which runs this as pi, has no such step.
+set -u
+cd / || exit 1
+PATH=/usr/local/bin:/usr/bin:/bin
+admin=/usr/local/lib/pi/as-pi
+step=
+case ${1:-}/${2:-}/${3:-} in
+  clients/webhook/set) step=set ;;
+  clients/webhook/rm) step=rm ;;
+  clients/revoke/*) step=revoke ;;
+esac
+if [ -z "$step" ]; then
+  [ "$(id -u)" -eq 0 ] || exec "$admin" admin "$@"
+  "$admin" admin "$@"
+  status=$?
+  /usr/local/lib/pi/agent-keys
+  exit "$status"
+fi
+[ "$(id -u)" -eq 0 ] || { echo 'only root runs this' >&2; exit 1; }
+
+file=/data/pinotify/webhooks.json
+# webhook_keys ARGUMENTS: the image's key step as pinotify, from an empty environment.
+webhook_keys() {
+  /usr/bin/env -i PATH="$PATH" /usr/bin/setpriv --reuid=pinotify --regid=pinotify --init-groups \
+    /usr/local/bin/node --disable-sigusr1 /opt/intelligence/apps/pi/src/work/webhook-keys.ts "$@"
+}
+# run: the command as pi, its output printed, its status kept in status and its output in out.
+run() {
+  out=$("$admin" admin "$@")
+  status=$?
+  [ -z "$out" ] || printf '%s\n' "$out"
+}
+unstored() { echo 'the command succeeded, but the webhook key file was not changed: run it again' >&2; exit 1; }
+
+# One key step at a time, from the command to the file's rename, so two never lose each other's
+# change. The lock is in root's own directory, taken after the key is read.
+lock() {
+  exec 9>> /run/pi-root/webhooks.lock
+  /usr/bin/flock 9
+}
+
+case $step in
+  set)
+    [ "$#" -eq 5 ] || { echo 'usage: pia clients webhook set NAME URL' >&2; exit 2; }
+    IFS= read -rs -p 'webhook key (empty to make one): ' key < /dev/tty || { echo >&2; echo 'no terminal to read the key from' >&2; exit 1; }
+    echo >&2
+    made=
+    if [ -z "$key" ]; then
+      key=$(/usr/bin/openssl rand -hex 32) || exit 1
+      made=yes
+    else
+      # Under the C locale, so the range is bytes, not collation: one key off the format makes
+      # `pi notify` refuse the whole file and stop every client's notices. The length is checked
+      # apart: a bound above 255 is past some regex libraries' limit, and fails there.
+      LC_ALL=C
+      # A receiver that wants the Bearer scheme takes the key after `Bearer `, as the owner
+      # asked; the prefix is stored and sent with it.
+      token=${key#Bearer }
+      [[ $token =~ ^[!-~]+$ ]] && [ "${#token}" -ge 16 ] && [ "${#token}" -le 512 ] || { echo 'refused: a webhook key is 16 to 512 visible ASCII characters, optionally after "Bearer "' >&2; exit 1; }
+    fi
+    lock
+    run "$@"
+    [ "$status" -eq 0 ] || exit "$status"
+    client=$(printf '%s\n' "$out" | webhook_keys client) || unstored
+    printf '%s\n' "$key" | webhook_keys set "$file" "$client" || unstored
+    [ -z "$made" ] || printf 'webhook key, shown once: %s\n' "$key" > /dev/tty
+    ;;
+  rm)
+    lock
+    run "$@"
+    [ "$status" -eq 0 ] || exit "$status"
+    client=$(printf '%s\n' "$out" | webhook_keys client) || unstored
+    webhook_keys rm "$file" "$client" < /dev/null || unstored
+    ;;
+  revoke)
+    # `clients revoke` prints nothing, so the id is read from `clients list` first. A name it does
+    # not find is refused by the revoke itself; a list that failed, beside a revoke that succeeded,
+    # is said, not passed over.
+    lock
+    client=$("$admin" admin clients list | webhook_keys client "${3:-}") || client=
+    run "$@"
+    [ "$status" -eq 0 ] || exit "$status"
+    [ -n "$client" ] || unstored
+    webhook_keys rm "$file" "$client" < /dev/null || unstored
+    ;;
+esac
+exit 0

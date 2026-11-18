@@ -1,0 +1,14 @@
+#!/bin/sh
+# What pi-notify and the sender's supervisor start as the pinotify user, from an empty environment:
+# load the sender's one file and become `pi`, so `pi-notify notify` is `pi notify`
+# with the notify role's URL and the webhook keys' path, and nothing else. Each value is read and
+# exported by this shell: it is never an argument of a process, which every user could read.
+set -eu
+cd /
+unset PWD OLDPWD
+while IFS= read -r line; do
+  case $line in PI_*=*) export "$line" ;; esac
+done < /run/pinotify/notify.env
+# Each log line carries its time and level.
+export PI_LOG_TIME=1
+exec /usr/local/bin/pi "$@"

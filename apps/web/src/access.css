@@ -1,0 +1,71 @@
+/* The sign-in screen (access.tsx): the app's sky of this minute behind (sky.ts sets its tokens on
+   .app), the app's icon and name in the middle of it, and one pane of glass holding the action. On
+   the desk the two sit together in the middle of the window; on the phone, a home-screen app, the
+   name sits in the middle of the sky and the glass at the foot, under the owner's thumb, clear of the
+   home indicator and the status bar. */
+
+/* The sky's shade (sky.ts's veil, as the rooms' titles have it) reaches further down here, past
+   the name and its line wherever they sit. */
+.gate { --shade:linear-gradient(180deg, var(--sky-veil, transparent) 0, var(--sky-veil, transparent) 48%, color-mix(in oklab, var(--sky-veil, transparent) 72%, transparent) 64%, color-mix(in oklab, var(--sky-veil, transparent) 38%, transparent) 80%, color-mix(in oklab, var(--sky-veil, transparent) 12%, transparent) 92%, transparent 100%); }
+.app.gate { background:var(--shade) top / 100% 680px no-repeat, var(--sky); }
+
+.signin { min-height:100dvh; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:36px;
+  padding:max(32px, env(safe-area-inset-top, 0px)) 16px max(32px, env(safe-area-inset-bottom, 0px)); }
+
+.signin-mark { display:flex; flex-direction:column; align-items:center; text-align:center; }
+.signin-icon { display:block; flex:none; background:linear-gradient(180deg, #83b0e0 0%, #94bfeb 20%, #b0d1f1 39%, #cfddf0 59%, #e5e0e7 70%, #f5dfd8 78%, #fbdacc 84%, #eecfd2 90%, #c8c9e5 96%, #b9c7e9 100%); width:84px; height:84px; border-radius:19px; box-shadow:0 22px 44px -20px rgba(18,26,48,.55), 0 2px 6px -2px rgba(18,26,48,.25); user-select:none; -webkit-user-select:none; }
+.signin-mark h1 { margin-top:24px; font-family:var(--serif); font-weight:300; font-size:var(--t6); line-height:1.08; letter-spacing:-.012em; text-wrap:balance; }
+.signin-mark p { margin-top:10px; font-size:var(--t3); color:var(--mute); }
+
+.signin-card { width:min(400px, 100%); display:grid; gap:14px; padding:22px; border-radius:24px; background:var(--glass); backdrop-filter:blur(24px) saturate(1.15); -webkit-backdrop-filter:blur(24px) saturate(1.15); border:1px solid color-mix(in oklab, var(--solid) 70%, transparent); box-shadow:0 30px 60px -36px rgba(18,26,48,.45); }
+
+/* The one action: the app's primary, a size up, full width. */
+.signin-go { width:100%; height:50px; border-radius:14px; display:flex; align-items:center; justify-content:center; gap:10px; background:var(--ink); color:var(--solid); font-size:var(--t4); font-weight:500; letter-spacing:-.005em; transition:transform .12s ease, opacity .2s; }
+.signin-go:active:not(:disabled) { transform:scale(.985); }
+.signin-go[aria-busy="true"]:disabled { opacity:.85; }
+/* The way to the other path, quiet, a full finger's height. */
+.signin-aside { justify-self:center; min-height:40px; padding:0 10px; font-size:var(--t3); font-weight:500; color:var(--steel); }
+.signin-also { font-size:var(--t2); line-height:1.5; color:var(--mute); text-align:center; text-wrap:pretty; }
+
+/* An outcome, above the action it bears on: a dot in the steel blue for a quiet one, in the warning
+   colour for trouble. */
+.signin-note { display:grid; grid-template-columns:8px 1fr; gap:11px; align-items:baseline; padding:12px 14px; border-radius:14px; background:var(--tint); border:1px solid var(--rule); font-size:var(--t3); line-height:1.45; text-wrap:pretty; }
+.signin-note::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--steel); transform:translateY(-1px); }
+.signin-note.trouble::before { background:var(--warn); }
+
+/* A command the owner types, in their box's terminal: set apart, wrapped only where a phone must. */
+.signin .cmdline { font-size:var(--t2); color:var(--ink); padding:1px 6px; border-radius:6px; background:var(--rule); -webkit-box-decoration-break:clone; box-decoration-break:clone; }
+
+/* Setting up a passkey: two steps in order, then the field and the action. */
+.signin-steps { display:grid; gap:10px; counter-reset:step; font-size:var(--t3); line-height:1.5; }
+.signin-steps li { counter-increment:step; display:grid; grid-template-columns:24px 1fr; gap:10px; align-items:baseline; }
+.signin-steps li::before { content:counter(step); width:22px; height:22px; border-radius:50%; display:grid; place-items:center; font-size:var(--t1); font-weight:600; color:var(--steel); border:1px solid color-mix(in oklab, var(--steel) 45%, transparent); transform:translateY(-1px); }
+.signin-form { display:grid; gap:10px; margin-top:2px; }
+.signin-field input { width:100%; height:50px; padding:0 16px; border-radius:14px; border:1px solid var(--line); background:color-mix(in oklab, var(--solid) 72%, transparent); color:var(--ink); font-size:var(--t4); }
+.signin-field input::placeholder { color:var(--mute); opacity:1; }
+.signin-field input:focus-visible { outline:2px solid var(--steel); outline-offset:1px; border-radius:14px; }
+
+.signin-spin { width:16px; height:16px; border-radius:50%; border:2px solid currentColor; border-right-color:transparent; animation:signin-spin .8s linear infinite; }
+@keyframes signin-spin { to { transform:rotate(1turn); } }
+
+/* One moment on arrival: the name, then the glass. */
+@media (prefers-reduced-motion: no-preference) {
+  .signin-mark { animation:signin-in .6s ease both; }
+  .signin-card { animation:signin-in .6s ease .12s both; }
+  @keyframes signin-in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+}
+@media (prefers-reduced-motion: reduce) {
+  .signin-spin { display:none; }
+}
+
+/* The phone: the name in the middle of the sky above, the glass at the foot. */
+@container (max-width: 600px) {
+  .signin { justify-content:flex-end; gap:0; padding:env(safe-area-inset-top, 0px) 16px max(16px, env(safe-area-inset-bottom, 0px)); }
+  .app.gate { background:transparent; }
+  .app.gate::after { height:calc(env(safe-area-inset-top, 0px) + 520px); background:var(--shade); }
+  .signin-mark { flex:1; justify-content:flex-start; padding:clamp(40px, 11vh, 110px) 8px 32px; }
+  .signin-icon { width:76px; height:76px; border-radius:17px; }
+  .signin-mark h1 { font-size:var(--t5); margin-top:22px; }
+  .signin-mark p { font-size:var(--t4); }
+  .signin-card { width:100%; padding:20px; border-radius:26px; }
+}

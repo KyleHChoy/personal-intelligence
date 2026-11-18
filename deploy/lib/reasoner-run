@@ -1,0 +1,21 @@
+#!/bin/sh
+# What pi-reasoner becomes, as the reasoner user, from an empty environment: load the
+# reasoner's one file and start one run. Only PI_REASONER_ lines, and the key endpoint's override
+# that only the smoke test sets, are exported, so no other line in the file, a database URL among
+# them, reaches the reasoner. Each value is read and exported
+# by this shell: it is never an argument of a process, which every user could read.
+#
+# --disable-sigusr1, as bin/pi has it: pi starts this through sudo, so pi can signal that sudo
+# process, which relays the signal here; without the flag pi could open the inspector of the
+# one process that holds the reasoner's model key.
+#
+# The shell exports PWD of its own, which is unset, so the run holds PATH and the file's variables
+# alone. pi-reasoner has already changed to /.
+set -eu
+unset PWD OLDPWD
+while IFS= read -r line; do
+  case $line in PI_REASONER_*=* | PI_OPENROUTER_KEY_URL=*) export "$line" ;; esac
+done < /run/reasoner/reasoner.env
+# Each log line carries its time and level, as pi's do on the box.
+export PI_LOG_TIME=1
+exec /usr/local/bin/node --disable-sigusr1 /opt/intelligence/apps/reasoner/src/main.ts once

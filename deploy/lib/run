@@ -1,0 +1,16 @@
+#!/bin/sh
+# run NAME [pi arguments]: load /run/pi/NAME.env and become `pi`. The wrappers start it, as
+# the pi user, from an empty environment, so `pi` gets the variables of one file and nothing
+# else. Each value is read and exported by this shell: it is never an argument of a process,
+# which every user could read. The agent API is not started here: it runs as pimcp, through
+# lib/mcp-run.
+set -eu
+cd /
+name=$1
+shift
+while IFS= read -r line; do
+  case $line in PI_*=*) export "$line" ;; esac
+done < "/run/pi/$name.env"
+# Each log line carries its time and level.
+export PI_LOG_TIME=1
+exec /usr/local/bin/pi "$@"

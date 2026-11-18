@@ -1,0 +1,40 @@
+{
+  "about": "A foreign key with no index led by its columns is a full read of the child table at each delete of a parent row. One is allowed only when its parent's rows are never deleted (neverDeleted, by parent) or when it is listed by itself with its reason (keys, by \"table(columns)\"). packages/store/src/core/foreign-key-indexes.db.test.ts fails on an unindexed key allowed by neither, on an entry no such key needs, and on a neverDeleted parent that a statement of the store or of a migration deletes from or that a cascading key deletes.",
+  "keys": {
+    "knowledge.accounts(entity_id)": "Its parent is deleted, and the key check skip-scans the label-led index on the same column; a plain index would give a reader statement a path past the label key.",
+    "knowledge.aliases(entity_id)": "Its parent is deleted, and the key check skip-scans the label-led index on the same column; a plain index would give a reader statement a path past the label key.",
+    "knowledge.domains(entity_id)": "Its parent is deleted, and the key check skip-scans the label-led index on the same column; a plain index would give a reader statement a path past the label key.",
+    "knowledge.events(evidence_id)": "Its parent is deleted, and the key check skip-scans the label-led index on the same column; a plain index would give a reader statement a path past the label key.",
+    "knowledge.interaction_log(entity_id)": "Its parent is deleted, and the key check skip-scans the label-led index on the same column; a plain index would give a reader statement a path past the label key.",
+    "ledger.identity_questions(a_entity)": "Its parent is deleted, and the key check skip-scans the label-led index on the same column; a plain index would give a reader statement a path past the label key.",
+    "ledger.identity_questions(b_entity)": "Its parent is deleted, and the key check skip-scans the label-led index on the same column; a plain index would give a reader statement a path past the label key."
+  },
+  "neverDeleted": {
+    "knowledge.areas": "An area is retired by its state, never deleted: its projects keep it.",
+    "knowledge.owner_decisions": "The owner's decisions are append-only: a decision is lifted or superseded by a newer one, and an erasure taints one, never deletes it.",
+    "knowledge.projects": "A project stays once made; a merge points it at another (merged_into) and its status says so.",
+    "ledger.agent_messages": "Agent mail is append-only; a reply points at the message it answers.",
+    "ledger.agent_writes": "An agent record is kept by its ids when its body is removed (tainted_at, body_enc dropped).",
+    "ledger.assignments": "Durable work is append-only.",
+    "ledger.calibration_reports": "Calibration reports are append-only.",
+    "ledger.cards": "A card is closed by its status events, or tainted (tainted_at); never deleted. The cascading keys from it (ledger.card_name_holds, ledger.health_notices) state that the child means nothing without its card; they never fire, since the parent row is never deleted.",
+    "ledger.cases": "Durable work is append-only.",
+    "ledger.decision_point_calls": "Decision-point calls are append-only.",
+    "ledger.exposures": "Exposures are the record of what left the store; never deleted.",
+    "ledger.hypotheses": "Durable work is append-only.",
+    "ledger.improvements": "The improvement store is append-only; a duplicate points at the one it repeats.",
+    "ledger.memory_exposures": "Exposures are the record of what left the store; never deleted.",
+    "ledger.memory_projections": "What a client's memory file was served is append-only.",
+    "ledger.opportunities": "An opportunity is closed by its decisions and events, or tainted (tainted_at); never deleted. The cascading keys from it (ledger.work_notices, ledger.work_declines) state that the child means nothing without its opportunity; they never fire, since the parent row is never deleted.",
+    "ledger.opportunity_decisions": "Decisions on work are append-only.",
+    "ledger.record_events": "Status events are append-only.",
+    "ledger.sent_messages": "A send is the record of what left the store; never deleted.",
+    "ledger.sessions": "Sessions are the record of who called; never deleted.",
+    "ledger.threshold_proposals": "Threshold proposals are append-only.",
+    "policy.clients": "A client is revoked (status, revoked_at), never deleted, so what it did keeps its author.",
+    "policy.harness_modes": "A harness mode is revoked (revoked_at), never deleted.",
+    "policy.intents": "A mandate is revoked (revoked_at), never deleted.",
+    "policy.tool_names": "Tool names are added by migrations only; no role can delete one.",
+    "vault.source_accounts": "A source account's id is kept by every row derived from it and by its erasures; no statement deletes one."
+  }
+}

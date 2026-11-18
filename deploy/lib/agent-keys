@@ -1,0 +1,74 @@
+#!/bin/sh
+# agent-keys: bring the agent API's files up to date with pi's, for root alone: the entrypoint runs
+# it at each start, and pia after each owner command. Two users answer for the agent API, and
+# neither reads pi's files: pimcp runs `pi mcp` on a pipe, for the box's own callers, and pihttp
+# runs `pi http`, which answers the internet. Each has its own two files, in /data/pimcp and
+# /data/pihttp:
+#
+#   keys.json            `pi keys agent-copy` as pi, from admin.env: the key file narrowed to
+#                        `public`, every `agent:` key and every compartment a registered client
+#                        holds or once held (pi's own record, beside the key file), so `own` or an
+#                        employer's compartment no client was ever cleared for is not in it.
+#                        pihttp's is `pi keys agent-copy --http`, narrowed the same way to the
+#                        clients that may call over HTTPS: every client but the reasoner, which
+#                        calls over a pipe alone, so a compartment only the reasoner holds is not in
+#                        it.
+#   keys.json.erasures   `pi keys agent-journal` as pi: the erasure journal's mark, its last sequence
+#                        number alone, which is all the agent API's reader compares; removed when
+#                        pi's journal is missing, so a lost journal never reads as one with no
+#                        erasure. The timer also refreshes both, as pi, after each sync and settle.
+#
+# Each is made by pi into this root process's memory, never onto a disk, and handed only when its
+# maker exited 0 to lib/agent-file as the endpoint's user, which writes it beside its place and
+# renames it over the copy; root never opens a path inside /data/pi, /data/pimcp or /data/pihttp. A
+# copy whose maker or writer failed leaves the old one. Each user owns the directory it writes in,
+# so every child of theirs runs under a time limit, with the lock's descriptor closed: a FIFO or
+# anything else planted there can hold up one run for at most that limit, never the lock. The
+# narrowed sets only grow, so a running `pi http` takes the new keys without a restart. One run at
+# a time, by a lock in root's own directory; a run that waits for it more than two minutes gives up
+# with `locked`. It writes nothing to stdout, so `pia clients add ... | pi-token agent` carries the
+# token alone; on stderr, a failure is one fixed line, an event and a code (`keys` and `journal` for
+# pimcp's, `http_keys` and `http_journal` for pihttp's).
+set -u
+umask 077
+cd /
+PATH=/usr/local/bin:/usr/bin:/bin
+[ "$(id -u)" -eq 0 ] || { echo 'only root runs this' >&2; exit 1; }
+say() { printf '{"event":"agent_keys_failed","code":"%s"}\n' "$1" >&2; }
+# A copy above pi's journal means the journal went back in time and erasure lines may be lost, so
+# its reset is said, not silent.
+reset() { printf '{"event":"journal_copy_reset"}\n' >&2; }
+clean='/usr/bin/env -i PATH=/usr/local/bin:/usr/bin:/bin'
+# as_user USER ...: as USER, from an empty environment, for at most 30 seconds, without the lock.
+as_user() { who=$1; shift; /usr/bin/timeout -k 5 30 $clean /usr/bin/setpriv --reuid="$who" --regid="$who" --init-groups "$@" 9>&-; }
+# made ARGS...: `pi ARGS` as pi, from admin.env, its standard output into $made; 0 only when it
+# exited 0 and printed something.
+made() { made=$(/usr/bin/timeout -k 5 120 /usr/local/lib/pi/as-pi admin "$@" 2> /dev/null 9>&-) && [ -n "$made" ]; }
+# hand USER NAME: $made to USER's copy NAME (keys or journal), as USER; 0 only when it was written
+# whole and renamed into place.
+hand() { printf '%s\n' "$made" | as_user "$1" /usr/local/lib/pi/agent-file "$2" > /dev/null 2>&1; }
+
+: >> /run/pi-root/agent-keys.lock
+exec 9< /run/pi-root/agent-keys.lock
+/usr/bin/flock -w 120 9 || { say locked; exit 1; }
+
+failed=0
+{ made keys agent-copy && hand pimcp keys; } || { say keys; failed=1; }
+{ made keys agent-copy --http && hand pihttp keys; } || { say http_keys; failed=1; }
+journal=no
+if /usr/bin/timeout -k 5 30 $clean /usr/bin/setpriv --reuid=pi --regid=pi --init-groups test -e /data/pi/keys.json.erasures 9>&- 2> /dev/null; then
+  journal=yes
+fi
+for user in pimcp pihttp; do
+  code=journal
+  [ "$user" = pimcp ] || code=http_journal
+  if [ "$journal" = yes ]; then
+    # A hand refused as lower than the copy (a lost journal, then an older database restored) would
+    # be refused for good, so root, whose mark is pi's journal's, removes the copy and hands a fresh
+    # mark again. Only root does: the timer and the page, as pi, cannot remove it.
+    { made keys agent-journal && { hand "$user" journal || { as_user "$user" /bin/rm -f "/data/$user/keys.json.erasures" 2> /dev/null && made keys agent-journal && hand "$user" journal && reset; }; }; } || { say "$code"; failed=1; }
+  else
+    as_user "$user" /bin/rm -f "/data/$user/keys.json.erasures" 2> /dev/null || { say "$code"; failed=1; }
+  fi
+done
+exit "$failed"

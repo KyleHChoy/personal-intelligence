@@ -1,0 +1,24 @@
+#!/bin/sh
+# rotate-logs FILE...: the box's log rotation by size during a run. Every 30
+# seconds, each FILE of 5 MB or more is copied to FILE.1, over the one before, and emptied in
+# place. Its writers hold it open in append mode (the shell's >>), so they go on writing at the
+# start of the emptied file, and a run that writes for half an hour is cut as one that started
+# afresh would be. A line written between the copy and the emptying is lost, a window of the copy's
+# few milliseconds once each 5 MB, the price of never stopping the writer. So each log is two files
+# of about 5 MB at most. The supervisor and the timer
+# start it in the background; it ends when the process that started it does.
+#
+# ROTATE_EVERY and ROTATE_BYTES change the period and the size, for the test alone.
+set -u
+PATH=/usr/local/bin:/usr/bin:/bin
+parent=$PPID
+every=${ROTATE_EVERY:-30}
+most=${ROTATE_BYTES:-5000000}
+while kill -0 "$parent" 2> /dev/null; do
+  for file in "$@"; do
+    if [ -f "$file" ] && [ "$(wc -c < "$file")" -ge "$most" ]; then
+      cp -f "$file" "$file.1" && : > "$file"
+    fi
+  done
+  sleep "$every"
+done

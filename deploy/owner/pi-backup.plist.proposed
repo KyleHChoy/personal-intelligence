@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Not loaded: it runs the ssh form unattended, with a key that is root in the box and nobody
+     present. Load it only if you accept that. The install command fills in SCRIPT and DIR and loads it. -->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.intelligence.pi-backup</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>SCRIPT</string>
+    <string>DIR</string>
+  </array>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Weekday</key>
+    <integer>0</integer>
+    <key>Hour</key>
+    <integer>9</integer>
+  </dict>
+</dict>
+</plist>

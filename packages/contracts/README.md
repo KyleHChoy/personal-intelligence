@@ -1,0 +1,14 @@
+# @intelligence/contracts
+
+This library also serves the team deployment, which is not published and holds the components named here that this repository does not, such as the key service. This copy leaves out policy.ts, and the declarations only that deployment uses.
+
+Every shape that crosses a boundary: evidence, labels, claims, beliefs, outbox messages, tokens, keys, tool inputs and outputs, and the route tables. The stable seam as models improve.
+
+- **May import:** nothing in this repo. Its only dependency is `zod`. The import fence test checks the forbidden cases.
+- **Runs with:** No credentials. Schemas, inferred types and constants, and a few pure functions that compute a shape's value: the alias key's normal form and fingerprints (`alias-key.ts`), `evidenceIdFor` and `messageBodyHash`; `src/personal` adds its own, such as its parsers and checks.
+- **Who uses what:** Personal Intelligence is the only system in this repository that uses this package. Personal Intelligence's code imports the ids, the shapes of evidence, labels, claims, beliefs, the ontology, connectors, keys, model calls and the claim pipeline, the ports, the HTTP port and the two hash entry points, beside its own shapes under `src/personal`.
+- **Entry points:** `@intelligence/contracts` exports every file under `src` except two. `evidenceIdFor` is imported from `@intelligence/contracts/evidence-id`, which uses Node's hash and so stays out of a browser bundle. `messageBodyHash` is imported from `@intelligence/contracts/body-hash`, which uses Web Crypto.
+- **Personal entry point:** `@intelligence/contracts/personal` exports `src/personal`, the shapes only Personal Intelligence uses. Only personal code imports it, which the import fence test checks. Its files import `zod`, each other, and `Timestamp` and `SourceAccountId` from `src/ids.ts`. The root entry point exports none of it.
+- **Layout:** one file per area of shapes. Every data shape is a Zod schema and the type inferred from it, under one name. Ports are interfaces in `ports.ts`.
+- **Team files:** `runs.ts`, `tools.ts`, `tokens.ts`, `ledger.ts`, `queue.ts` and the app API and agent API route tables in `http.ts` were written for the team deployment (Intelligence run for an organization's team). No app in this repository serves their routes or tools. They ship because shared code still names some of their types, as the claim pipeline's errors name `FailureCode` from `queue.ts`. Personal Intelligence's own tools, records and routes are under `src/personal`.
+- **Tests:** one file for each area, beside the code. `test-samples.ts` holds made-up values the tests share, and `test-checks.ts` the checks made of many schemas: a valid value parses, each required field's absence fails, nested fields included, a closed list refuses a value outside it, a strict schema refuses an unknown key.

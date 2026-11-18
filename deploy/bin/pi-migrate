@@ -1,0 +1,341 @@
+#!/bin/sh
+# One migration, in one of three ways.
+set -eu
+umask 077
+cd /
+usage() { echo 'usage: pi-migrate [--enable-auto | --auto]' >&2; exit 2; }
+[ "$#" -le 1 ] || usage
+mode=owner
+case ${1:-} in
+  '') ;;
+  --enable-auto) mode=enable ;;
+  --auto) mode=auto ;;
+  *) usage ;;
+esac
+credential=/data/pi-root/migrate.env
+# With `standing` set, lib/superuser.sh asks nothing: the run connects as pi_migrator.
+standing=
+if [ "$mode" = auto ]; then
+  [ -s "$credential" ] || { echo no_migration_credential; exit 3; }
+  standing=yes
+fi
+. /usr/local/lib/pi/superuser.sh
+
+# fresh: a new password, 32 random bytes as 64 hexadecimal characters.
+fresh() { od -An -N32 -tx1 /dev/urandom | tr -d ' \n'; }
+# is_verifier VALUE: whether VALUE is a SCRAM-SHA-256 verifier and holds only a verifier's characters,
+# so nothing else goes into a statement.
+is_verifier() {
+  case $1 in 'SCRAM-SHA-256$'*) ;; *) return 1 ;; esac
+  case $1 in *[!A-Za-z0-9+/=:\$-]*) return 1 ;; esac
+}
+# ending ROLE [others]: the statement that ends ROLE's sessions, each end waiting up to five
+# seconds for the session to be gone; with `others`, every session but the one that sends it.
+ending() {
+  echo "select count(pg_terminate_backend(pid, 5000)) from pg_stat_activity where usename = '$1'${2:+ and pid <> pg_backend_pid()};"
+}
+# replace: a fresh password for pi_migrator, in root's directory before the server has it: written
+# beside the credential, then set, then renamed over it, so a run killed at any point leaves a
+# file the server takes, the old one or, as migrate.env.next, the new one (`--auto` looks there).
+# The server is sent a SCRAM-SHA-256 verifier, made by `pi db verifier` as root, which alone holds
+# the password, from an empty environment with the password on its standard input: a statement
+# holding the password could be read in pg_stat_activity by another session of the role that sent
+# it. Each value is held by this shell and printf, which is its own: never an argument of a
+# process. `new` is the password it set.
+replace() {
+  new=$(fresh)
+  printf '%s\n' "$new" > "$credential.next"
+  made=$(printf '%s\n' "$new" | /usr/bin/env -i PATH=/usr/local/bin:/usr/bin:/bin /usr/local/bin/pi db verifier) || made=
+  is_verifier "$made" || made=
+  if [ -n "$made" ] && printf "alter role pi_migrator password '%s';\n" "$made" | sql; then
+    mv -f "$credential.next" "$credential"
+  else
+    rm -f "$credential.next"
+    return 1
+  fi
+}
+# hand_over ROLE PASSWORD: bootstrap.env, which `pi db migrate` reads as pi for this run alone: the
+# URL it connects with, and every role's URL.
+hand_over() {
+  {
+    # With the admin URL's sslmode and sslrootcert, when it has them (lib/superuser.sh).
+    printf '%s\n' "PI_DATABASE_URL_BOOTSTRAP=postgres://$1:$2@$hostport/pi${dbquery:+?$dbquery}"
+    # Every role's URL from the files of /run/pi, so a new role whose file is there needs no change
+    # here. The send proxy's URL must never be in one: `db migrate` refuses it (wrong_role_url), and
+    # the send proxy keeps send.env in /run/pisend. /run/pi is root's, so no file in it is one pi
+    # planted, and pi runs the migration in any case.
+    for file in /run/pi/*.env; do
+      [ -f "$file" ] || continue
+      [ "$file" = /run/pi/bootstrap.env ] || grep -h '^PI_DATABASE_URL_' "$file" || :
+    done
+    # From another user's directory, its own role's URL and no other line: `db migrate` sets each
+    # role's password from its URL, and a later line of the same name wins, so a line for another
+    # role in a file a less trusted user could write would let that user set that role's password.
+    # The reader role's from mcp.env, which pimcp reads and cannot write; the restricted reader's
+    # from restricted.env. pi reads each here only for the migration, in bootstrap.env.
+    [ ! -f /run/pimcp/mcp.env ] || grep -h '^PI_DATABASE_URL_READER=' /run/pimcp/mcp.env || :
+    [ ! -f /run/pirestricted/restricted.env ] || grep -h '^PI_DATABASE_URL_RESTRICTED=' /run/pirestricted/restricted.env || :
+  } > /run/pi/bootstrap.env
+  chown pi:pi /run/pi/bootstrap.env
+}
+# settled ROLE: whether no session of ROLE but this one is left. A session that was ended may still
+# be listed for a moment, so its end is waited on, five seconds at most.
+settled() {
+  for _ in 1 2 3 4 5; do
+    left=$(echo "select count(*) from pg_stat_activity where usename = '$1' and pid <> pg_backend_pid();" | sql) || left=
+    [ "$left" != 0 ] || return 0
+    sleep 1
+  done
+  return 1
+}
+# roles_as_expected: what lib/role-check.sql counts is 0.
+roles_as_expected() {
+  found=$({ echo "set pi.role_prefix = 'pi_';"; echo "set pi.role_bootstrap = 'pi_bootstrap';"; cat /usr/local/lib/pi/role-check.sql; } | sql) || found=
+  [ "$found" = 0 ]
+}
+
+if [ "$mode" = auto ]; then
+  PGUSER=pi_migrator PGDATABASE=pi
+  export PGUSER PGDATABASE
+  # taken FILE: whether FILE holds a password this script made and the server takes; `pw` is it.
+  taken() {
+    pw=
+    IFS= read -r pw < "$1" || :
+    case $pw in *[!0-9a-f]*) pw= ;; esac
+    PGPASSWORD=$pw
+    export PGPASSWORD
+    [ "${#pw}" -eq 64 ] && echo 'select 1;' | sql > /dev/null 2>&1
+  }
+  # A run killed after the server took a new password and before the file was renamed left the new
+  # one in migrate.env.next: when the server refuses the file's and takes that one, it becomes the
+  # credential. In every other case it is removed, tried or not.
+  if ! taken "$credential"; then
+    if [ -s "$credential.next" ] && taken "$credential.next"; then
+      mv -f "$credential.next" "$credential"
+    else
+      rm -f "$credential.next"
+      echo migration_credential_refused
+      exit 1
+    fi
+  fi
+  rm -f "$credential.next"
+  # retire: the password pi read is replaced by one only root holds, and every other session of
+  # the role is ended, since pi could have opened one of its own beside the migration's. A role
+  # may set its own password and end its own sessions.
+  retire() {
+    rm -f /run/pi/bootstrap.env
+    replace || return 1
+    PGPASSWORD=$new
+    ending pi_migrator others | sql > /dev/null || return 1
+  }
+  # On every exit, the three catchable signals included, as the owner's run closes below.
+  retired=
+  close() { [ -n "$retired" ] || retire || echo migration_credential_unrotated; }
+  trap close EXIT
+  trap 'exit 1' HUP INT TERM
+  hand_over pi_migrator "$pw"
+  # pi's lines on standard error are ids and codes; the refusal's code is read from them.
+  status=0
+  lines=$(/usr/local/lib/pi/as-pi bootstrap db migrate --auto 2>&1 > /dev/null) || status=$?
+  [ -z "$lines" ] || printf '%s\n' "$lines" >&2
+  if [ "$status" -ne 0 ]; then
+    case $lines in
+      *'"code":"needs_superuser"'*) echo needs_superuser ;;
+      *) echo migrate_failed ;;
+    esac
+    exit 1
+  fi
+  retired=yes
+  retire || { echo migration_credential_unrotated; exit 1; }
+  # The check the owner's run makes, asked as the migrator: every role reads pg_roles and
+  # pg_auth_members.
+  if ! settled pi_migrator || ! roles_as_expected; then
+    echo roles_not_as_expected
+    exit 1
+  fi
+  echo migrated
+  exit 0
+fi
+
+# Take login away and remove the file that held the password. The role must never be left able
+# to log in once this script is not running, whatever killed it.
+# Taking the login away ends no session, and pi, which read the password, could have opened one
+# of its own beside the migration's, so every session of the role is ended too. Each end waits up
+# to five seconds for the session to be gone, so the role check after the migration does not race a
+# session still closing.
+disable() {
+  rm -f /run/pi/bootstrap.env
+  echo 'alter role pi_bootstrap nologin password null;' | sql
+  ending pi_bootstrap | sql >/dev/null
+}
+close() {
+  disable
+  echo "select 'bootstrap can log in: ' || rolcanlogin from pg_roles where rolname = 'pi_bootstrap';" | sql
+}
+# close runs on every exit, including the three catchable signals: a shell runs the EXIT trap on
+# a signal only when that signal is trapped too, so the signal traps re-raise as a plain exit.
+trap close EXIT
+trap 'exit 1' HUP INT TERM
+# A previous run killed with SIGKILL could not have run close, so it may have left the role able
+# to log in with the password still in bootstrap.env. Repair that before anything else: take
+# login away first, then this run enables the role only for its own migration.
+disable
+pw=$(fresh)
+# The password goes to psql on standard input, never as an argument, and pi-db-init has kept
+# statements out of the server's log. Its expiry is the server's to enforce and is reckoned by
+# the server's own clock, not the box's. A session already open is not ended by it, and the
+# migration applies every file on one session, so one that runs longer still completes; disable ends
+# every session of the role once the migration has.
+printf "select format('alter role pi_bootstrap login password %%L valid until %%L', '%s', now() + interval '30 minutes') \\gexec\n" "$pw" | sql
+hand_over pi_bootstrap "$pw"
+/usr/local/lib/pi/as-pi bootstrap db migrate
+
+# The restricted role's password is the owner's to set, so it is optional: `pi db migrate` set it
+# from the URL in bootstrap.env, or, with none there, made the role with no password, which no one
+# can log in with. Said on its own line, so a deploy that carries a migration never waits on it.
+# Read here, before disable removes the file, and said before the send role's, whose skip ends the
+# script, so every role's status is said.
+if grep -q '^PI_DATABASE_URL_RESTRICTED=.' /run/pi/bootstrap.env; then
+  restricted='restricted password: set'
+else
+  restricted='restricted password: skipped'
+fi
+
+# The migration is done: the bootstrap's login and sessions end now, before the roles are checked,
+# so no session of pi's own changes them after the check; a session still there is a failure.
+disable
+sessions=0
+settled pi_bootstrap || sessions=left
+
+# The standing migration credential, which only the owner's word makes (--enable-auto): the role,
+# its one grant of the owner, which sets and neither inherits nor grants on, its right to connect,
+# and a password pi never sees, in a directory of the volume only root reads. Made by the
+# superuser, so the bootstrap holds nothing of it. Without the flag a credential that is there is
+# kept, and with no file the role, when there is one, loses its login and its sessions: so
+# deleting the file is all it takes to turn unattended migration off.
+if [ "$mode" = enable ]; then
+  mkdir -p -m 700 /data/pi-root
+  sql <<'SQL'
+select 'create role pi_migrator login nosuperuser nobypassrls nocreatedb nocreaterole noreplication'
+  where not exists (select from pg_roles where rolname = 'pi_migrator') \gexec
+alter role pi_migrator login nosuperuser nobypassrls nocreatedb nocreaterole noreplication;
+grant pi_owner to pi_migrator with set true, inherit false, admin false;
+grant connect on database pi to pi_migrator;
+SQL
+  replace
+elif [ ! -s "$credential" ]; then
+  # With no credential, a migrate.env.next a killed run left is no credential either.
+  rm -f "$credential.next"
+  {
+    cat <<'SQL'
+select 'alter role pi_migrator nologin password null'
+  where exists (select from pg_roles where rolname = 'pi_migrator') \gexec
+SQL
+    ending pi_migrator
+  } | sql > /dev/null
+fi
+if [ -s "$credential" ]; then unattended='unattended migration: on'; else unattended='unattended migration: off'; fi
+
+# The bootstrap can make roles and grant the owner, and pi held its password, so the server's roles
+# are checked, as the superuser, before the send and notice roles get a password: what the check
+# counts is in lib/role-check.sql, and a count other than 0 ends the run.
+if [ "$sessions" != 0 ] || ! roles_as_expected; then
+  echo 'roles: not as expected'
+  exit 1
+fi
+echo 'roles: as expected'
+echo "$restricted"
+echo "$unattended"
+
+# waited: the end of the box's wait for this migration, once the run has succeeded. A start that
+# found a migration pending took the read hold and the sync hold, named those it took in
+# /data/pi-root/migrate-holds, and, with no credential of its own, made /data/migrate-wait
+# (lib/migrate-start). Here each hold that file names comes off, unless the hold file was written
+# or touched since, which makes it the owner's, as migrate-start's `mine` has it; its card and the
+# wait's are closed, and the two files are removed. One line says so. With neither file there is
+# nothing to end, and nothing is said or done.
+waited() {
+  marker=/data/pi-root/migrate-holds
+  [ -e "$marker" ] || [ -e /data/migrate-wait ] || return 0
+  for hold in read-hold sync-hold; do
+    grep -qx "$hold" "$marker" 2> /dev/null || continue
+    [ -z "$(find "/data/$hold" -newer "$marker" 2> /dev/null)" ] || continue
+    rm -f "/data/$hold"
+    /usr/local/lib/pi/as-pi admin health hold "$(echo "$hold" | tr '-' '_')" --off > /dev/null 2>&1 || :
+  done
+  rm -f "$marker" /data/migrate-wait
+  /usr/local/lib/pi/as-pi admin health hold migrate_wait --off > /dev/null 2>&1 || :
+  echo 'migration wait: ended'
+}
+# finish STATUS: the run's end, the box's wait ended first when it succeeded. The roles' passwords
+# come after the files, so the schema mark (/run/pistate/schema, which `pi http`'s /healthz reads)
+# says `current` whatever their end: every file is applied by now.
+finish() {
+  printf 'current\n' > /run/pistate/schema 2> /dev/null || :
+  [ "$1" -ne 0 ] || waited
+  exit "$1"
+}
+
+# Two roles' passwords are set from a URL in a file of /run that only one other Unix user and root
+# read, never in a file of /run/pi, so never in bootstrap.env: the send role's and the notify
+# role's. The server is sent a SCRAM-SHA-256 verifier and never the password.
+#
+# url_of FILE NAME: the value of NAME's line in FILE, or nothing.
+url_of() {
+  value=
+  if [ -f "$1" ]; then
+    while IFS= read -r line; do
+      case $line in "$2"=?*) value=${line#"$2"=} ;; esac
+    done < "$1"
+  fi
+  printf '%s' "$value"
+}
+# verifier_of ROLE USER URL: the verifier of the password in URL, made by `pi db verifier` as the
+# Unix user USER, which holds the URL already, from an empty environment, with the password on its
+# standard input. Each value is held by this shell and printf, which is its own: never an argument
+# of a process. It fails for the URL the laptop loop does not make: one whose query holds more than
+# sslmode and sslrootcert, which `pi` would refuse (bad_url) or which could name another server, one
+# naming a user other than ROLE, or a password that is not 64 lower-case hexadecimal characters.
+verifier_of() {
+  case $3 in *'#'* | *'?'*'?'*) return 1 ;; esac
+  case $3 in
+    *'?'*)
+      set -f
+      for pair in $(printf '%s\n' "${3#*\?}" | tr '&' ' '); do
+        case $pair in sslmode=?* | sslrootcert=?*) ;; *) set +f; return 1 ;; esac
+        case ${pair#*=} in *[!A-Za-z0-9._/-]*) set +f; return 1 ;; esac
+      done
+      set +f
+      ;;
+  esac
+  name=$(printf '%s\n' "$3" | sed -n 's|^postgres[a-z]*://\([^:@/]*\):\([^@/]*\)@.*|\1|p')
+  secret=$(printf '%s\n' "$3" | sed -n 's|^postgres[a-z]*://\([^:@/]*\):\([^@/]*\)@.*|\2|p')
+  [ "$name" = "$1" ] || return 1
+  case $secret in *[!0-9a-f]*) return 1 ;; esac
+  [ "${#secret}" -eq 64 ] || return 1
+  made=$(printf '%s\n' "$secret" | /usr/bin/env -i PATH=/usr/local/bin:/usr/bin:/bin /usr/bin/setpriv --reuid="$2" --regid="$2" --init-groups /usr/local/bin/pi db verifier) || return 1
+  is_verifier "$made" || return 1
+  printf '%s\n' "$made"
+}
+
+# password_from LABEL ROLE USER URL: ROLE's password from URL, the verifier made as the Unix user
+# USER, which with root alone reads the file the URL is in, once the migration has made the role. It
+# is the owner's to set, so with no URL it is skipped and the run goes on: the role keeps the
+# password it has, or none, and cannot log in. A refused URL sets `status` to 1 and the run still
+# goes on, so one bad optional URL never keeps another role's password from being set.
+password_from() {
+  if [ -z "$4" ]; then
+    echo "$1 password: skipped"
+  elif verifier=$(verifier_of "$2" "$3" "$4"); then
+    printf "alter role %s password '%s';\n" "$2" "$verifier" | sql
+    echo "$1 password: set"
+  else
+    echo "$1 password: refused"
+    status=1
+  fi
+}
+status=0
+# The notify role's, from notify.env; then the send role's, from send.env.
+password_from notify pi_notify pinotify "$(url_of /run/pinotify/notify.env PI_DATABASE_URL_NOTIFY)"
+password_from proxy pi_proxy pisend "$(url_of /run/pisend/send.env PI_DATABASE_URL_PROXY)"
+finish "$status"

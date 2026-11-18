@@ -1,0 +1,16 @@
+{
+  "name": "@intelligence/personal-reasoner",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "bin": {
+    "pi-reasoner": "./src/main.ts"
+  },
+  "dependencies": {
+    "@intelligence/contracts": "workspace:*",
+    "@intelligence/personal-ladder": "workspace:*",
+    "@intelligence/personal-models": "workspace:*"
+  }
+}

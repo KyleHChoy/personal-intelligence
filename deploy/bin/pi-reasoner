@@ -1,0 +1,17 @@
+#!/bin/sh
+# One reasoning run: the reasoner, as the reasoner user, with its model and its key and nothing
+# else. It takes at most one queued run and exits. The timer runs it, as pi, after each tick.
+#
+# pi comes through sudo, whose one rule for pi is this wrapper with no argument. root drops to
+# the reasoner, emptying the environment first, as as-pi does. As the reasoner it empties the
+# environment again and loads its one file. Anyone else is refused: agent has no way here.
+set -eu
+cd /
+[ "$#" -eq 0 ] || { echo 'pi-reasoner takes no arguments' >&2; exit 2; }
+clean='/usr/bin/env -i PATH=/usr/local/bin:/usr/bin:/bin'
+case $(id -un) in
+  reasoner) exec $clean /usr/local/lib/pi/reasoner-run ;;
+  pi) exec /usr/bin/sudo -n -u reasoner /usr/local/bin/pi-reasoner ;;
+  root) exec $clean /usr/bin/setpriv --reuid=reasoner --regid=reasoner --init-groups /usr/local/bin/pi-reasoner ;;
+  *) echo 'only root and pi run this' >&2; exit 1 ;;
+esac

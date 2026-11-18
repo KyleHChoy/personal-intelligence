@@ -1,0 +1,27 @@
+#!/bin/sh
+# The page's Serve configuration, set once per start as root. Tailscale lets only root, or an
+# operator who can run `sudo tailscale`, serve a Unix socket ("must be root ... to serve a path or
+# Unix socket"), so pitail, which runs the daemon, cannot set it. The entrypoint starts this as
+# root, in the background, with an empty environment. It waits until tail-serve has joined the
+# tailnet (its marker in /run/pitail, which only pitail and root can open), sets HTTPS on the node's
+# name proxied to the page's socket, says `serving`, and exits: no root process stays. pitail's
+# daemon does the serving, and it opens the socket as piweb's one other member. A failure is said
+# and tried again a minute later. Its lines are fixed:
+# {"event":"tailscale","at":...,"level":...,"code":...}.
+#
+# It is not run under lib/supervise: it is a one-shot job of root's that
+# waits, sets Serve once and exits, while the supervisor restarts what ends; and its two lines
+# belong on the container's output, where the supervisor would move them into a log of its own.
+set -u
+cd /
+PATH=/usr/local/bin:/usr/bin:/bin
+sock=/run/pitail/tailscaled.sock
+joined=/run/pitail/joined
+page=/data/pi/keys.json.web
+# say CODE LEVEL: one fixed line on the container's output.
+say() { printf '{"event":"tailscale","at":"%s","level":"%s","code":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$2" "$1" >&2; }
+ts() { /usr/local/bin/tailscale --socket="$sock" "$@" < /dev/null; }
+
+until [ -f "$joined" ]; do sleep 5; done
+until ts serve reset > /dev/null 2>&1 && ts serve --bg --https=443 "unix:$page" > /dev/null 2>&1; do say serve_failed warn; sleep 60; done
+say serving info

@@ -1,0 +1,21 @@
+#!/bin/sh
+# The owner's page: `pi web serve` from admin.env, as `pia` runs `pi`, with no terminal and no
+# lifetime of its own. The entrypoint starts this as pi with piweb its primary group, in the
+# background, with an empty environment, as it starts http-serve. So the page's socket,
+# <PI_KEY_FILE>.web, is made in the group piweb, whose one other member is pitail, the user
+# `tailscale serve` runs as; the server makes it 0660 and its control socket,
+# <PI_KEY_FILE>.web-control, 0600. Core dumps are off: the server holds the key file. Its log lines
+# (stderr) go to /data/pi/web.log; its stdout goes nowhere, so a login code is never kept on the
+# volume.
+#
+# `--agent-journal`: the page appends to the erasure journal as pi (a lift of a release among its writes), so
+# after each write that changed it the server hands the journal's mark to the agent API's two copies as the
+# timer does, through pi's sudo rules for pimcp and pihttp to lib/agent-file journal. A failure is one
+# agent_journal_failed line in web.log.
+#
+# Run by the box's one supervisor (lib/supervise), with its start and end
+# lines, its backoff (a server that ends within a minute of its start, before the schema or before
+# `pia erase replay`, waits longer each time) and its rotation by size during the run. One that ends
+# with 3, stopped by `pia web stop`, is not started again until the box restarts.
+ulimit -c 0
+exec /usr/local/lib/pi/supervise web /data/pi/web.log --state /run/pistate/web.restarts --stdout null --stop 3 -- /usr/local/lib/pi/run admin web serve --agent-journal

@@ -1,0 +1,12 @@
+#!/bin/sh
+# The proposal wake's listener: `pi extract wake` as pi, from extract.env, which
+# starts lib/wake-run after each burst of agent proposals and owner answers. The entrypoint starts
+# this as pi, in the background, when it wrote extract.env. Its lines go to /data/pi/wake.log. A
+# listener that ends, because its connection was lost or its day was up, is started again. While
+# either hold or /data/wake-off exists it starts none: wake-run would start nothing.
+#
+# Run by the box's one supervisor (lib/supervise), with its start and end
+# lines (`wake_start`, `wake_end`), its backoff, its rotation by size during the run, and one
+# `wake_held` line when a hold stops it.
+[ -e /run/pi/extract.env ] || exit 0
+exec /usr/local/lib/pi/supervise wake /data/pi/wake.log --state /run/pistate/wake.restarts --hold /data/read-hold --hold /data/sync-hold --hold /data/wake-off -- /usr/local/bin/pi-extract extract wake /usr/local/lib/pi/wake-run

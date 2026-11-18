@@ -1,0 +1,37 @@
+#!/bin/sh
+# pi-read-hold on|off: stop every read through the agent API, and let reads start again. For
+# the owner's own session, which is root. It is set before an upgrade's deploy and cleared when
+# the migration has run, and around a restore, so nothing reads a database that is not ready.
+#
+# on makes /data/read-hold, which pi-mcp refuses to start beside, and then ends every agent API
+# process that was already running, `pi http` included (http-serve starts it again only once
+# the hold is cleared, and it checks the erasure journal as it starts; meanwhile lib/held-answer,
+# which reads nothing, answers 503 unavailable on its port): a client keeps its endpoint
+# open, and a session opened before the hold would otherwise keep reading. The file is in /data,
+# which is root's, so no agent and no pi process clears it, and it is on the volume, so a deploy
+# does not either.
+set -eu
+cd /
+[ "$(id -u)" -eq 0 ] || { echo 'only root runs this' >&2; exit 1; }
+case ${1:-} in
+  on)
+    : > /data/read-hold
+    # A wrapper that passed pi-mcp's check a moment before the file existed becomes `pi mcp` a
+    # moment after, so the processes are looked for three times, a second apart.
+    for pass in 1 2 3; do
+      for p in /proc/[0-9]*; do
+        # The agent API runs as pimcp, `pi mcp`, and as pihttp, `pi http`.
+        case $(stat -c %U "$p" 2> /dev/null) in pimcp | pihttp) ;; *) continue ;; esac
+        case $(tr '\0' ' ' < "$p/cmdline" 2> /dev/null) in
+          # The supervisor whose command it runs: it stays, waiting out the hold.
+          *'/usr/local/lib/pi/supervise '*) ;;
+          *'/apps/pi/src/main.ts mcp ' | *'/usr/local/lib/pi/mcp-run mcp mcp ' | *'/usr/local/bin/pi-mcp ' | *'/apps/pi/src/main.ts http ' | *'/usr/local/lib/pi/mcp-run http http ')
+            kill "${p#/proc/}" 2> /dev/null || : ;;
+        esac
+      done
+      [ "$pass" -eq 3 ] || sleep 1
+    done
+    ;;
+  off) rm -f /data/read-hold ;;
+  *) echo 'usage: pi-read-hold on|off' >&2; exit 2 ;;
+esac

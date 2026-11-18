@@ -1,0 +1,38 @@
+#!/bin/sh
+# The host's pre-deploy step (deploy/railway.json): run in a container of its own from the
+# new image, before the running box is touched, with the service's variables and without the volume.
+# It exits 0 when this image may replace the running box and 1 when it may not, so a deploy that
+# could not migrate never replaces the one that runs; the host then reports the deploy failed.
+#
+# Its lines on standard error are fixed: one JSON line, the event `predeploy`, its time, its level
+# and its code. The admin URL goes to a file only pi reads, never into an argument.
+set -eu
+umask 077
+PATH=/usr/local/bin:/usr/bin:/bin
+cd /
+
+say() { printf '{"event":"predeploy","at":"%s","level":"%s","code":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "${2:-info}" "$1" >&2; }
+
+[ "$(id -u)" -eq 0 ] || { say not_root error; exit 1; }
+[ -n "${PI_DATABASE_URL_ADMIN:-}" ] || { say missing_env error; exit 1; }
+nl='
+'
+case $PI_DATABASE_URL_ADMIN in *"$nl"*) say bad_env error; exit 1 ;; esac
+install -d -m 750 -o root -g pi /run/pi/
+# A path, not read: `db pending` opens no key, and its command names the variable it requires.
+printf '%s\n' "PI_DATABASE_URL_ADMIN=$PI_DATABASE_URL_ADMIN" "PI_KEY_FILE=/data/pi/keys.json" > /run/pi/predeploy.env
+chown pi:pi /run/pi/predeploy.env
+
+answer=
+for try in 1 2 3 4 5 6; do
+  answer=$(/usr/bin/timeout -k 30 120 /usr/local/lib/pi/as-pi predeploy db pending --deploy 2> /dev/null) && break
+  answer=
+  [ "$try" -eq 6 ] || sleep 10
+done
+rm -f /run/pi/predeploy.env
+case $answer in
+  none) say current ;;
+  unattended) say migrates_at_start ;;
+  owner) say needs_owner error; exit 1 ;;
+  *) say pending_unread error; exit 1 ;;
+esac

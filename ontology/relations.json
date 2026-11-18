@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "switch": {
+    "precisionMin": 0.95,
+    "checkedEachKinds": ["same_fact", "supersedes", "contradicts"],
+    "orderAgreementMin": 0.95,
+    "orderAgreementDays": 14,
+    "overturnRateMax": 0.02,
+    "laterContradictionRateMax": 0.05,
+    "rateWindowDays": 30,
+    "reenableFraction": 0.5,
+    "reenableDays": 14
+  },
+  "evidenceOrder": [
+    "independent_sources",
+    "first_hand",
+    "authenticated_mail",
+    "domain_matches_organization",
+    "newer_statement"
+  ],
+  "margins": { "independentSourcesWin": 2, "independentSourcesLose": 1, "newerStatementDays": 30 },
+  "budget": { "candidatesPerSubject": 40, "callsPerRun": 20, "callsPerDay": 400 },
+  "dream": {
+    "callsPerNight": 400,
+    "usdPerNight": 20,
+    "sourceChecksPerNight": 50,
+    "hotChecksPerNight": 10,
+    "auditShare": 0.1,
+    "auditsPerDay": 1,
+    "recallChecksPerNight": 20,
+    "recallUsdPerDay": 2
+  }
+}

@@ -1,0 +1,65 @@
+#!/bin/sh
+# pi-send [send command]: `pi send` as the pisend user, the one user that holds the send role's URL
+# and the send client, in /run/pisend/send.env, which lib/send-run loads. For the owner's own
+# session, which is root: the file is root's, mode 0700, and no sudo rule names it. Nothing
+# schedules it.
+#
+#   pi-send send status
+#   ssh -L PORT:127.0.0.1:PORT pi-box /usr/local/bin/pi-send send connect --account LABEL --port PORT
+#
+# pisend cannot read pi's key file or its erasure journal. So for each run this makes two copies
+# in /run/pisend, each pisend's alone: the key file narrowed to the fingerprint key, `own` and
+# every `agent:` key, and the whole journal. Root never opens a path inside /data/pi: a process
+# running as pi reads each file and hands its bytes on a pipe, and the image's own code chooses
+# the keys. The copies exist only while the command runs: they are removed when it ends, however
+# it ends, and one send command runs at a time, so two runs never remove each other's copies.
+#
+# Its own lines on stderr are fixed: an event and a code. Never a value.
+set -eu
+umask 077
+cd /
+PATH=/usr/local/bin:/usr/bin:/bin
+say() { printf '{"event":"pi_send","code":"%s"}\n' "$1" >&2; }
+[ "$(id -u)" -eq 0 ] || { echo 'only root runs this' >&2; exit 1; }
+
+clean='/usr/bin/env -i PATH=/usr/local/bin:/usr/bin:/bin'
+dir=/run/pisend
+keys=$dir/keys.json
+journal=$dir/keys.json.erasures
+remove() { rm -f "$keys" "$journal"; }
+failed() { remove; say copy_failed; exit 1; }
+
+# One run at a time. The lock is in root's own directory, and a second run exits before it touches
+# a copy. The send command itself holds it too, on fd 9, opened read-only, so a wrapper killed
+# outright gives no turn to a second run while its command still runs. The copies' makers are
+# started with fd 9 closed.
+: >> /run/pi-root/pi-send.lock
+exec 9< /run/pi-root/pi-send.lock
+/usr/bin/flock -n 9 || { say busy; exit 1; }
+
+# The copies go however this ends, the three catchable signals included: a shell runs the EXIT
+# trap on a signal only when that signal is trapped too, so the signal traps re-raise as a plain
+# exit, as pi-migrate's do. A run killed outright leaves them, and the next run, or the next
+# start of the box, removes them first.
+trap remove EXIT
+trap 'exit 1' HUP INT TERM
+remove
+
+# The key copy: the key file's bytes read as pi, narrowed by the image's entry run as root from
+# an empty environment, which writes a new file, mode 0600, and prints nothing. Then pisend's.
+if ! $clean /usr/bin/setpriv --reuid=pi --regid=pi --init-groups cat /data/pi/keys.json 9>&- 2> /dev/null \
+  | $clean /usr/local/bin/node --disable-sigusr1 /opt/intelligence/apps/pi/src/send/send-keys.ts "$keys" 9>&- 2> /dev/null; then
+  failed
+fi
+chown pisend:pisend "$keys" 2> /dev/null || failed
+# The journal copy, when there is a journal, asked as pi; with none, pi send decides as it does
+# for a missing journal. Root writes the copy in its own directory, and pi only reads.
+if $clean /usr/bin/setpriv --reuid=pi --regid=pi --init-groups test -e /data/pi/keys.json.erasures 9>&- 2> /dev/null; then
+  $clean /usr/bin/setpriv --reuid=pi --regid=pi --init-groups cat /data/pi/keys.json.erasures 9>&- 2> /dev/null > "$journal" || failed
+  chown pisend:pisend "$journal" 2> /dev/null || failed
+fi
+
+# The command, as pisend, from an empty environment; not exec'd, so the copies are removed after.
+status=0
+$clean /usr/bin/setpriv --reuid=pisend --regid=pisend --init-groups /usr/local/lib/pi/send-run "$@" || status=$?
+exit "$status"

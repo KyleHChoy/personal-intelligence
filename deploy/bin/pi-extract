@@ -1,0 +1,14 @@
+#!/bin/sh
+# Extraction: `pi` as the pi user, with extract.env and nothing else. The timer runs
+# `pi-extract extract`; the owner runs `pi-extract extract check` and
+# `pi-extract extract --max-calls 50`. The proposal wake's listener runs
+# `pi-extract extract wake /usr/local/lib/pi/wake-run`, and that script
+# `pi-extract extract --agent-records`. No sudo rule names it, so the agent user
+# cannot run it.
+# The owner's pause of the nightly dream pass: while /data/dream-hold exists, no dream starts,
+# whoever asks. The file is on the volume, so a deploy does not lift the pause.
+if [ "${1:-}" = dream ] && [ -e /data/dream-hold ]; then
+  echo 'dream_paused'
+  exit 0
+fi
+exec /usr/local/lib/pi/as-pi extract "$@"
